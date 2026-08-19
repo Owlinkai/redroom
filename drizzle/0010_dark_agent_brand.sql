@@ -1,0 +1,1 @@
+ALTER TABLE `mission_runs` MODIFY COLUMN `status` enum('running','completed','failed','partial','interrupted') DEFAULT 'running';

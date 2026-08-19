@@ -1,0 +1,1 @@
+ALTER TABLE `crawl_missions` ADD `minArticlesPerRun` int DEFAULT 0;

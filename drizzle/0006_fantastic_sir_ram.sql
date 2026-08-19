@@ -1,0 +1,2 @@
+ALTER TABLE `facility_candidates` ADD `groundingStatus` enum('validated','likely_accurate','unverified','disputed') DEFAULT 'unverified';--> statement-breakpoint
+ALTER TABLE `facility_candidates` ADD `groundingNotes` text;
