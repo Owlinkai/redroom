@@ -685,7 +685,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
       )}
 
       {boot === 1 && (
-        <div className="relative mx-3 flex h-[100dvh] w-full max-w-7xl flex-col items-center gap-2 overflow-x-hidden overflow-y-auto pt-14 pb-3 sm:mx-4 sm:gap-3 sm:pt-8 md:overflow-hidden md:pt-6 md:pb-4"
+        <div className="relative mx-3 flex h-[100dvh] w-full max-w-7xl flex-col items-center gap-2 overflow-x-hidden overflow-y-auto pt-14 pb-3 sm:mx-4 sm:gap-3 sm:pt-8 lg:overflow-hidden lg:pt-6 lg:pb-4"
           style={{ zIndex: 5, boxSizing: 'border-box' }}>
 
           {/* Header */}
@@ -711,10 +711,10 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
           </div>
 
           {/* Main layout — desktop: 3-col row | mobile: globe + region list stacked */}
-          <div className="flex min-h-0 w-full flex-none flex-col items-stretch gap-2 md:flex-1 md:flex-row md:gap-4">
+          <div className="flex min-h-0 w-full flex-none flex-col items-stretch gap-2 lg:flex-1 lg:flex-row lg:gap-4">
 
             {/* ── LEFT: Intelligence Activity Feed — hidden on mobile ── */}
-            <div className="hidden md:flex w-56 flex-col gap-2 flex-shrink-0 min-h-0">
+            <div className="hidden lg:flex w-56 flex-col gap-2 flex-shrink-0 min-h-0">
 
               {/* SIGINT/HUMINT bars */}
               <div className="px-3 py-2.5 rounded-lg border border-red-900/25 flex-shrink-0" style={{ background: isLight ? 'rgba(255,255,255,0.9)' : 'rgba(15,0,0,0.7)' }}>
@@ -815,7 +815,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
             </div>
 
             {/* ── CENTER: Globe ── */}
-            <div className="relative isolate flex h-[230px] min-w-0 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl md:h-auto md:flex-1 md:overflow-visible md:rounded-none">
+            <div className="relative isolate flex h-[230px] min-w-0 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl lg:h-auto lg:flex-1 lg:overflow-visible lg:rounded-none">
               {/* Heat visualization layers */}
               <div className="absolute hidden h-[700px] w-[700px] rounded-full pointer-events-none md:block" style={{
                 background: active
@@ -875,7 +875,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
 
               <canvas
                 ref={canvasRef}
-                className="h-[215px] w-[215px] sm:h-[250px] sm:w-[250px] md:h-[460px] md:w-[460px]"
+                className="h-[215px] w-[215px] sm:h-[250px] sm:w-[250px] lg:h-[460px] lg:w-[460px]"
                 style={{ cursor: pointerRef.current.active ? 'grabbing' : 'grab', touchAction: 'none' }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
@@ -1194,14 +1194,14 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
             </div>
 
             {/* ── RIGHT: Region selector — same height as left panel ── */}
-            <div className="flex h-[220px] min-h-0 w-full flex-shrink-0 flex-col gap-0 overflow-hidden rounded-xl md:h-full md:w-64" style={{ border: isLight ? '1px solid rgba(200,0,0,0.3)' : '1px solid rgba(200,0,0,0.22)', background: isLight ? 'rgba(255,255,255,0.92)' : 'rgba(8,0,0,0.72)', boxShadow: isLight ? '0 0 24px rgba(180,0,0,0.06), inset 0 0 40px rgba(0,0,0,0.02)' : '0 0 24px rgba(180,0,0,0.08), inset 0 0 40px rgba(0,0,0,0.4)' }}>
+            <div className="flex h-[220px] min-h-0 w-full flex-shrink-0 flex-col gap-0 overflow-hidden rounded-xl lg:h-full lg:w-64" style={{ border: isLight ? '1px solid rgba(200,0,0,0.3)' : '1px solid rgba(200,0,0,0.22)', background: isLight ? 'rgba(255,255,255,0.92)' : 'rgba(8,0,0,0.72)', boxShadow: isLight ? '0 0 24px rgba(180,0,0,0.06), inset 0 0 40px rgba(0,0,0,0.02)' : '0 0 24px rgba(180,0,0,0.08), inset 0 0 40px rgba(0,0,0,0.4)' }}>
 
               {/* Search */}
               <div className="relative flex-shrink-0 px-2 pt-2 pb-2">
                 <Search size={10} className="absolute left-3 top-1/2 -translate-y-1/2 text-red-400/40"/>
                 <input type="text" value={q} onChange={e => handleSearch(e.target.value)}
                   placeholder="Search country or region..."
-                  className="h-10 w-full rounded-lg py-2 pl-8 pr-8 font-mono text-[12px] outline-none transition-all md:h-auto md:text-[11px]"
+                  className="h-10 w-full rounded-lg py-2 pl-8 pr-8 font-mono text-[12px] outline-none transition-all lg:h-auto lg:text-[11px]"
                   style={{ background: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(200,0,0,0.04)', border: isLight ? '1px solid rgba(200,0,0,0.25)' : '1px solid rgba(200,0,0,0.15)', color: 'var(--foreground)' }}
                   onFocus={e => (e.target.style.borderColor = 'rgba(220,0,0,0.5)')}
                   onBlur={e => (e.target.style.borderColor = 'rgba(200,0,0,0.15)')}

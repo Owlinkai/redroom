@@ -259,6 +259,65 @@
   box-shadow: 0 0 8px oklch(0.66 0.13 200 / 0.6);
 }
 
+/* ─── Compact UI mode ─────────────────────────────────────────────────────── */
+.normal-ui .command-map-short { display: none; }
+.normal-ui .command-map-full { display: inline; }
+
+.live-command-bar.is-compact {
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding: 0.35rem 0.5rem;
+  scrollbar-width: none;
+}
+.live-command-bar.is-compact::-webkit-scrollbar { display: none; }
+.live-command-bar.is-compact .command-threat { gap: 0.25rem; padding: 0.25rem 0.45rem; border-radius: 0.375rem; }
+.live-command-bar.is-compact .command-threat-dot { width: 0.375rem; height: 0.375rem; }
+.live-command-bar.is-compact .command-threat-label { font-size: 0.5rem; letter-spacing: 0.1em; }
+.live-command-bar.is-compact .command-threat-score { font-size: 0.5rem; }
+.live-command-bar.is-compact .command-stats { gap: 0.2rem; }
+.live-command-bar.is-compact .command-stats-label,
+.live-command-bar.is-compact .command-stat-label { display: none; }
+.live-command-bar.is-compact .command-stat { gap: 0; border: 0; background: transparent; padding: 0.125rem 0.25rem; }
+.live-command-bar.is-compact .command-stat-value { font-size: 0.625rem; }
+.live-command-bar.is-compact .command-time { gap: 0; border-radius: 0.375rem; padding: 0; }
+.live-command-bar.is-compact .command-time-button { border-radius: 0.25rem; padding: 0.25rem 0.375rem; font-size: 0.5rem; }
+.live-command-bar.is-compact .command-map { gap: 0; border-radius: 0.375rem; padding: 0; }
+.live-command-bar.is-compact .command-map-button { border-radius: 0.25rem; padding: 0.25rem 0.375rem; font-size: 0.5rem; }
+.live-command-bar.is-compact .command-map-full { display: none; }
+.live-command-bar.is-compact .command-map-short { display: inline; }
+.live-command-bar.is-compact .command-action { gap: 0; border-radius: 0.375rem; padding: 0.375rem; }
+.live-command-bar.is-compact .command-action-label { display: none; }
+.live-command-bar.is-compact .command-refresh { border-radius: 0.375rem; padding: 0.375rem; }
+
+.compact-ui .dashboard-header > :first-child { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.compact-ui .dashboard-header .nav-tab { padding: 0.3rem 0.65rem; font-size: 0.68rem; }
+.compact-ui .dashboard-header .nav-tab svg { width: 10px; height: 10px; }
+.compact-ui .dashboard-header .nav-tab-label { display: none; }
+.compact-ui .dashboard-header .nav-tab { gap: 0; padding: 0.3rem 0.45rem; }
+.compact-ui .dashboard-header .nav-tab .status-live { margin-left: 0.2rem; }
+.compact-ui .dashboard-header .text-orbitron { font-size: 0.68rem; }
+.compact-ui .dashboard-header .compact-ui-toggle { padding: 0.25rem 0.4rem; font-size: 0.5rem; }
+.compact-ui .dashboard-header .header-control { gap: 0; padding: 0.35rem; border-radius: 0.375rem; }
+.compact-ui .dashboard-header .header-icon-control { padding: 0.35rem; border-radius: 0.375rem; }
+.compact-ui .dashboard-header .header-control-label { display: none; }
+.compact-ui .dashboard-header .header-control svg { width: 11px; height: 11px; }
+
+.live-ticker.is-compact { height: 1.65rem; min-height: 1.65rem; }
+.live-ticker.is-compact .ticker-live-label { gap: 0.25rem; padding: 0 0.45rem; }
+.live-ticker.is-compact .ticker-breaking-label { gap: 0.25rem; padding: 0 0.4rem; }
+.live-ticker.is-compact .ticker-breaking-label span { font-size: 0.5rem; }
+.live-ticker.is-compact .ticker-item { padding: 0 0.75rem; font-size: 0.6rem; line-height: 1.65rem; }
+.live-ticker.is-compact .ticker-content-compact { animation: none; transform: none; }
+.live-ticker.is-compact .ticker-content-compact .ticker-item:nth-child(n + 2) { display: none; }
+.live-ticker.is-compact > .hidden { display: none; }
+
+.compact-ui .scanline { animation: none; opacity: 0.08; }
+.compact-ui .animate-signal-pulse,
+.compact-ui .animate-signal-sweep,
+.compact-ui .breaking-marker,
+.compact-ui .status-live::before,
+.compact-ui .status-critical::before { animation: none !important; }
+
 .intel-card {
   background: var(--card); border: 1px solid var(--border);
   border-radius: var(--radius-lg); position: relative; overflow: hidden;

@@ -11,7 +11,7 @@ import {
   Clock, Search,
   MapPin, Activity, Network, RefreshCw, Newspaper,
   Building2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2,
-  Maximize2, Shield, Zap, Map as MapIcon
+  Maximize2, Shield, Zap, Map as MapIcon, Moon, Sun, Satellite, Mountain
 } from "lucide-react";
 
 // Fix Leaflet default icons
@@ -723,7 +723,7 @@ function HeatmapLayer({ points, visible }: { points: HeatPoint[]; visible: boole
 }
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
-interface LiveTabProps { region: string; onExplore?: (title: string) => void; onVerify?: (articleId: number) => void; initialCountryFilter?: string; onCountryFilterUsed?: () => void; }
+interface LiveTabProps { region: string; onExplore?: (title: string) => void; onVerify?: (articleId: number) => void; initialCountryFilter?: string; onCountryFilterUsed?: () => void; compactUI?: boolean; }
 
 // THREATCON metadata
 const THREATCON_META = [
@@ -744,7 +744,15 @@ const TIME_WINDOWS = [
   { label: '1M',  hours: 720 },
 ];
 
-export default function LiveTab({ region, onExplore, onVerify, initialCountryFilter, onCountryFilterUsed }: LiveTabProps) {
+const COMPACT_MAP_MODE_ICONS = {
+  dark: Moon,
+  light: Sun,
+  osm: MapIcon,
+  satellite: Satellite,
+  topo: Mountain,
+} as const;
+
+export default function LiveTab({ region, onExplore, onVerify, initialCountryFilter, onCountryFilterUsed, compactUI = false }: LiveTabProps) {
   // ── State ──────────────────────────────────────────────────────────────────
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [selectedFacilityTypes, setSelectedFacilityTypes] = useState<string[]>([]);
@@ -774,6 +782,7 @@ export default function LiveTab({ region, onExplore, onVerify, initialCountryFil
   const [countryFilter, setCountryFilter] = useState<string | undefined>(initialCountryFilter);
   const [sentimentFilter, setSentimentFilter] = useState<string>("all");
   const [timeWindowHours, setTimeWindowHours] = useState(24);
+  const [compactTimeMenuOpen, setCompactTimeMenuOpen] = useState(false);
 
   // Apply initialCountryFilter when it changes (from CompareTab drill-down)
   useEffect(() => {
@@ -1086,79 +1095,113 @@ export default function LiveTab({ region, onExplore, onVerify, initialCountryFil
       {/* ══════════════════════════════════════════════════════════════════════
           TOP COMMAND BAR
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2 bg-background border-b border-border/60 z-[2000]"
+      <div className={`live-command-bar flex-shrink-0 flex items-center gap-3 px-4 py-2 bg-background border-b border-border/60 z-[2000] ${compactUI ? 'is-compact' : ''}`}
         style={{ boxShadow: '0 2px 20px oklch(from var(--foreground) l c h / 0.15)' }}>
 
         {/* THREATCON Badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border"
+        <div className="command-threat flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5"
           style={{ background: tcMeta.bg, borderColor: tcMeta.ring + '60' }}>
-          <div className="w-2 h-2 rounded-full flex-shrink-0"
+          <div className="command-threat-dot h-2 w-2 flex-shrink-0 rounded-full"
             style={{ background: tcMeta.color, boxShadow: `0 0 8px ${tcMeta.color}`, animation: tc >= 3 ? 'dot-blink 1s ease-in-out infinite' : 'none' }}/>
-          <span className="text-[9px] font-black tracking-[0.2em] uppercase" style={{ color: tcMeta.color }}>
+          <span className="command-threat-label text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: tcMeta.color }}>
             THREATCON {tcMeta.level}
           </span>
-          <span className="text-[9px] font-mono text-muted-foreground/60">{tc}/5</span>
+          <span className="command-threat-score text-[9px] font-mono text-muted-foreground/60">{tc}/5</span>
         </div>
 
         {/* Stats strip */}
-        <div className="flex items-center gap-2 flex-1">
-          <span className="text-[8px] font-mono text-muted-foreground/35 tracking-[0.15em] uppercase flex-shrink-0">Displaying</span>
+        <div className="command-stats flex min-w-0 flex-1 items-center gap-2">
+          <span className="command-stats-label flex-shrink-0 text-[8px] font-mono uppercase tracking-[0.15em] text-muted-foreground/35">Displaying</span>
           {[
             { val: threatSummary?.totalArticles ?? 0, cap: 500, label: 'Articles', color: 'var(--primary)' },
             { val: threatSummary?.breakingCount ?? 0, cap: 100, label: 'Breaking', color: 'var(--intel-red)' },
             { val: threatSummary?.criticalFacilities ?? 0, cap: 50, label: 'Critical Fac.', color: '#f97316' },
             { val: threatSummary?.activeConflicts ?? 0, cap: 100, label: 'Conflicts', color: '#a78bfa' },
           ].map((s, i) => (
-            <div key={i} className="flex items-center gap-1 px-2 py-0.5 rounded-md border border-border/20 bg-foreground/[0.025]">
-              <span className="text-[11px] font-bold font-mono leading-none tabular-nums" style={{ color: s.color }}>
+            <div key={i} aria-label={`${s.label}: ${s.val >= s.cap ? `${s.cap}+` : s.val}`} title={s.label} className="command-stat flex items-center gap-1 rounded-md border border-border/20 bg-foreground/[0.025] px-2 py-0.5">
+              <span className="command-stat-value text-[11px] font-bold font-mono leading-none tabular-nums" style={{ color: s.color }}>
                 {s.val >= s.cap ? `${s.cap}+` : s.val}
               </span>
-              <span className="text-[8px] text-muted-foreground/50 uppercase tracking-wide">{s.label}</span>
+              <span className="command-stat-label text-[8px] uppercase tracking-wide text-muted-foreground/50">{s.label}</span>
             </div>
           ))}
         </div>
 
         {/* Time window selector */}
-        <div className="flex items-center gap-0.5 bg-foreground/[0.04] rounded-lg p-0.5 border border-border/20">
-          {TIME_WINDOWS.map(tw => (
-            <button key={tw.hours} onClick={() => setTimeWindowHours(tw.hours)}
-              className="px-2 py-1 rounded-md text-[9px] font-bold tracking-wide transition-all"
-              style={timeWindowHours === tw.hours
-                ? { background: 'var(--primary)', color: 'var(--primary-foreground)', boxShadow: '0 1px 6px oklch(from var(--primary) l c h / 0.35)' }
-                : { color: 'oklch(from var(--foreground) l c h / 0.3)', background: 'transparent' }}>
-              {tw.label}
-            </button>
-          ))}
+        <div className="command-time flex shrink-0 items-center gap-0.5 rounded-lg border border-border/20 bg-foreground/[0.04] p-0.5">
+          {compactUI ? (
+            <div className="relative">
+              <button
+                onClick={() => setCompactTimeMenuOpen(open => !open)}
+                className="command-time-button command-time-trigger rounded-md px-1.5 py-1 text-[9px] font-bold tracking-wide transition-all"
+                title={`Time window: ${TIME_WINDOWS.find(tw => tw.hours === timeWindowHours)?.label ?? "24H"}. Choose time window`}
+                aria-label="Choose map time window"
+                aria-expanded={compactTimeMenuOpen}
+                style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', boxShadow: '0 1px 6px oklch(from var(--primary) l c h / 0.35)' }}
+              >
+                <Clock size={10} />
+              </button>
+              {compactTimeMenuOpen && (
+                <div className="compact-time-menu absolute right-0 top-full mt-1 flex min-w-28 flex-col rounded-md border border-border bg-card p-1 shadow-xl z-[2100]">
+                  {TIME_WINDOWS.map(tw => (
+                    <button
+                      key={tw.hours}
+                      onClick={() => { setTimeWindowHours(tw.hours); setCompactTimeMenuOpen(false); }}
+                      className="rounded px-2 py-1 text-left text-[9px] font-mono font-bold hover:bg-primary/10 hover:text-primary"
+                      style={timeWindowHours === tw.hours ? { color: 'var(--primary)' } : { color: 'var(--muted-foreground)' }}
+                    >
+                      {tw.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : TIME_WINDOWS.map(tw => (
+              <button key={tw.hours} onClick={() => setTimeWindowHours(tw.hours)}
+                className="command-time-button rounded-md px-2 py-1 text-[9px] font-bold tracking-wide transition-all"
+                style={timeWindowHours === tw.hours
+                  ? { background: 'var(--primary)', color: 'var(--primary-foreground)', boxShadow: '0 1px 6px oklch(from var(--primary) l c h / 0.35)' }
+                  : { color: 'oklch(from var(--foreground) l c h / 0.3)', background: 'transparent' }}>
+                {tw.label}
+              </button>
+            ))}
         </div>
 
         {/* Map mode */}
-        <div className="flex items-center gap-1 bg-foreground/5 rounded-lg p-0.5">
+        <div className="command-map flex shrink-0 items-center gap-1 rounded-lg bg-foreground/5 p-0.5">
           {(['dark', 'light', 'osm', 'satellite', 'topo'] as const).map(m => (
             <button key={m} onClick={() => setBaseMap(m)}
-              className="px-2 py-1 rounded-md text-[10px] font-medium transition-all capitalize"
+              title={`Use ${m} map`}
+              aria-label={`Use ${m} map`}
+              className="command-map-button rounded-md px-2 py-1 text-[10px] font-medium capitalize transition-all"
               style={baseMap === m ? { background: 'var(--primary)', color: 'var(--primary-foreground)' } : { color: 'oklch(from var(--foreground) l c h / 0.3)' }}>
-              {m === 'osm' ? 'OSM' : m === 'dark' ? '🌑 Dark' : m === 'light' ? '💡 Light' : m === 'satellite' ? 'SAT' : 'Topo'}
+              {compactUI ? (() => { const Icon = COMPACT_MAP_MODE_ICONS[m]; return <Icon size={10} />; })() : (m === 'osm' ? 'OSM' : m === 'dark' ? '🌑 Dark' : m === 'light' ? '💡 Light' : m === 'satellite' ? 'SAT' : 'Topo')}
             </button>
           ))}
         </div>
 
         {/* Panel toggles */}
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <button onClick={() => setShowIntelPanel(v => !v)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all border"
+            title="Toggle Intel panel"
+            aria-label="Toggle Intel panel"
+            className="command-action flex items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-medium transition-all"
             style={showIntelPanel ? { background: 'var(--primary)', borderColor: 'var(--primary)', color: 'var(--primary-foreground)' } : { background: 'transparent', borderColor: 'oklch(from var(--foreground) l c h / 0.1)', color: 'oklch(from var(--foreground) l c h / 0.4)' }}>
-            <Newspaper size={10}/> Intel
+            <Newspaper size={10}/><span className="command-action-label">Intel</span>
           </button>
           <button onClick={() => setShowLayerPanel(v => !v)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all border"
+            title="Toggle Layers panel"
+            aria-label="Toggle Layers panel"
+            className="command-action flex items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-medium transition-all"
             style={showLayerPanel ? { background: 'var(--intel-green)', borderColor: 'var(--intel-green)', color: 'var(--primary-foreground)' } : { background: 'transparent', borderColor: 'oklch(from var(--foreground) l c h / 0.1)', color: 'oklch(from var(--foreground) l c h / 0.4)' }}>
-            <Layers size={10}/> Layers
+            <Layers size={10}/><span className="command-action-label">Layers</span>
           </button>
         </div>
 
         {/* Refresh */}
         <button onClick={() => { refetchArticles(); refetchFacilities(); }}
-          className="p-1.5 rounded-lg border border-border/70 text-muted-foreground/60 hover:text-primary hover:border-primary/40 transition-all">
+          title="Refresh map data"
+          className="shrink-0 rounded-md border border-border/70 p-1.5 text-muted-foreground/60 transition-all hover:border-primary/40 hover:text-primary xl:rounded-lg">
           <RefreshCw size={12}/>
         </button>
       </div>
@@ -2189,7 +2232,7 @@ export default function LiveTab({ region, onExplore, onVerify, initialCountryFil
       {/* ══════════════════════════════════════════════════════════════════════
           LIVE EVENT TICKER (bottom strip)
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="flex-shrink-0 flex items-center bg-card border-t border-border/60 overflow-hidden"
+      <div className={`${compactUI ? "hidden" : "flex"} flex-shrink-0 items-center bg-card border-t border-border/60 overflow-hidden`}
         style={{ height: 32, boxShadow: '0 -2px 20px rgba(0,0,0,0.5)' }}>
         {/* Label */}
         <div className="flex-shrink-0 flex items-center gap-2 px-3 border-r border-border/60 h-full"

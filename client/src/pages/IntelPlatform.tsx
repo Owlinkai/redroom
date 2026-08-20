@@ -68,6 +68,30 @@ export default function IntelPlatform() {
   const [verifyArticleId, setVerifyArticleId] = useState<number | null>(null);
   const [liveCountryFilter, setLiveCountryFilter] = useState<string | undefined>(undefined);
   const [statusBarCollapsed, setStatusBarCollapsed] = useState(true);
+  const [compactPreference, setCompactPreference] = useState(true);
+  const [compactRequired, setCompactRequired] = useState(false);
+  const compactUI = compactRequired || compactPreference;
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1023px)");
+    const syncCompactRequirement = () => setCompactRequired(media.matches);
+    syncCompactRequirement();
+    media.addEventListener("change", syncCompactRequirement);
+    try {
+      const savedPreference = localStorage.getItem("redroom_compact_ui");
+      if (savedPreference !== null) setCompactPreference(savedPreference === "true");
+    } catch {}
+    return () => media.removeEventListener("change", syncCompactRequirement);
+  }, []);
+
+  const toggleCompactUI = useCallback(() => {
+    if (compactRequired) return;
+    setCompactPreference(current => {
+      const next = !current;
+      try { localStorage.setItem("redroom_compact_ui", String(next)); } catch {}
+      return next;
+    });
+  }, [compactRequired]);
 
   // ── Header prefs (DB-backed via tRPC, localStorage as fallback cache) ──────
   const { data: dbHeaderPrefs, isLoading: prefsLoading } = trpc.headerPrefs.getPrefs.useQuery(
@@ -270,11 +294,13 @@ export default function IntelPlatform() {
           <div key="region" className="relative">
             <button
               onClick={() => setShowRegionDropdown(v => !v)}
-              className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 border border-border text-mono text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition-all"
+              className="header-control flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 border border-border text-mono text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition-all"
+              title={`Select intelligence region: ${ov.labelOverride ?? selectedRegion}`}
+              aria-label={`Select intelligence region: ${ov.labelOverride ?? selectedRegion}`}
               style={ov.textColor || ov.bgColor ? ovStyle({}) : undefined}
             >
               <Globe size={10} />
-              {ov.labelOverride ?? selectedRegion}
+              <span className="header-control-label">{ov.labelOverride ?? selectedRegion}</span>
               <ChevronDown size={10} />
             </button>
             {showRegionDropdown && (
@@ -316,12 +342,12 @@ export default function IntelPlatform() {
             key="crawl"
             onClick={handleCrawl}
             disabled={crawling}
-            className="relative hidden sm:flex items-center gap-1.5 px-3 py-1 border border-border text-mono text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition-all disabled:opacity-50"
+            className="header-control relative hidden sm:flex items-center gap-1.5 px-3 py-1 border border-border text-mono text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition-all disabled:opacity-50"
             title={`Trigger intelligence crawl${activeMissionCount > 0 ? ` · ${activeMissionCount} active mission${activeMissionCount !== 1 ? 's' : ''}` : ''}`}
             style={ov.textColor || ov.bgColor ? ovStyle({}) : undefined}
           >
             <RefreshCw size={10} className={crawling ? 'animate-spin' : ''} />
-            {ov.labelOverride ?? (crawling ? 'CRAWLING' : 'CRAWL')}
+            <span className="header-control-label">{ov.labelOverride ?? (crawling ? 'CRAWLING' : 'CRAWL')}</span>
             {activeMissionCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 px-0.5 rounded-full bg-cyan-500 text-[8px] font-bold text-black flex items-center justify-center leading-none">
                 {activeMissionCount > 99 ? '99+' : activeMissionCount}
@@ -335,7 +361,9 @@ export default function IntelPlatform() {
           <button
             key="notifs"
             onClick={() => setShowNotifications(v => !v)}
-            className="relative flex items-center gap-1 px-2 py-1 border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all"
+            className="header-icon-control relative flex items-center gap-1 px-2 py-1 border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all"
+            title={ov.labelOverride ?? (unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications")}
+            aria-label={ov.labelOverride ?? (unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications")}
             style={ov.textColor || ov.bgColor ? ovStyle({}) : undefined}
           >
             {criticalCount > 0 ? (
@@ -356,7 +384,7 @@ export default function IntelPlatform() {
           <button
             key="fullscreen"
             onClick={toggleFullscreen}
-            className="hidden sm:flex items-center gap-1 px-2 py-1 border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all"
+            className="header-icon-control hidden sm:flex items-center gap-1 px-2 py-1 border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all"
             title={ov.labelOverride ?? (isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen')}
             style={ov.textColor || ov.bgColor ? ovStyle({}) : undefined}
           >
@@ -365,14 +393,14 @@ export default function IntelPlatform() {
         );
 
       case "upgrade":
-        return <UpgradeButton key="upgrade" portal="intel" variant="compact" />;
+        return <UpgradeButton key="upgrade" portal="intel" variant={compactUI ? "icon-only" : "compact"} />;
 
       case "docs":
         return (
           <a
             key="docs"
             href="/docs"
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] border transition-all"
+            className="header-control flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] border transition-all"
             style={ovStyle({ background: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.35)', color: 'rgba(34,197,94,0.9)', textDecoration: 'none' })}
             title="Documentation"
           >
@@ -380,7 +408,7 @@ export default function IntelPlatform() {
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
             </svg>
-            <span className="hidden sm:inline">{ov.labelOverride ?? 'DOCS'}</span>
+            <span className="header-control-label hidden sm:inline">{ov.labelOverride ?? 'DOCS'}</span>
           </a>
         );
 
@@ -389,7 +417,7 @@ export default function IntelPlatform() {
           <button
             key="theme"
             onClick={toggleTheme}
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] border transition-all"
+            className="header-control flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] border transition-all"
             style={ovStyle({
               background: theme === 'light' ? 'rgba(245,158,11,0.12)' : 'rgba(99,102,241,0.12)',
               borderColor: theme === 'light' ? 'rgba(245,158,11,0.4)' : 'rgba(99,102,241,0.4)',
@@ -398,7 +426,7 @@ export default function IntelPlatform() {
             title="Toggle theme"
           >
             {theme === 'dark' ? <Sun size={11} /> : <Moon size={11} />}
-            <span className="hidden sm:inline">{ov.labelOverride ?? (theme === 'dark' ? 'LIGHT' : 'DARK')}</span>
+            <span className="header-control-label hidden sm:inline">{ov.labelOverride ?? (theme === 'dark' ? 'LIGHT' : 'DARK')}</span>
           </button>
         );
 
@@ -412,11 +440,11 @@ export default function IntelPlatform() {
     crawling, activeMissionCount, handleCrawl,
     criticalCount, unreadCount,
     isFullscreen, toggleFullscreen,
-    theme, toggleTheme,
+    theme, toggleTheme, compactUI,
   ]);
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden bg-background text-foreground relative">
+    <div className={`dashboard-shell ${compactUI ? "compact-ui" : "normal-ui"} flex flex-col h-[100dvh] overflow-hidden bg-background text-foreground relative`}>
       <DisclaimerModal />
       <SessionIndicator />
       {showOnboarding && <GlobeRegionSelector onSelect={handleRegionSelect} />}
@@ -424,7 +452,7 @@ export default function IntelPlatform() {
       <div className="scanline" />
 
       {/* ─── Header ─────────────────────────────────────────────────────── */}
-      <header className="relative z-50 flex-shrink-0 border-b border-border bg-card/95 backdrop-blur-sm">
+      <header className="dashboard-header relative z-50 flex-shrink-0 border-b border-border bg-card/95 backdrop-blur-sm">
         {/* Top bar — 3-column: logo | center stats | controls */}
         <div className="grid grid-cols-[auto_1fr_auto] items-center px-2 md:px-4 py-1.5 border-b border-border/50">
           {/* Logo (left) */}
@@ -488,6 +516,17 @@ export default function IntelPlatform() {
               }
               return renderControlItem(id);
             })}
+            {!compactRequired && (
+              <button
+                onClick={toggleCompactUI}
+                className={`compact-ui-toggle flex items-center gap-1 rounded border px-2 py-1 font-mono text-[9px] transition-all ${compactUI ? "border-primary/60 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary"}`}
+                title={compactUI ? "Use normal dashboard UI" : "Use compact dashboard UI"}
+                aria-pressed={compactUI}
+              >
+                <Activity size={10} />
+                <span>COMPACT</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -497,10 +536,11 @@ export default function IntelPlatform() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              title={tab.description}
               className={`nav-tab flex items-center gap-1.5 ${activeTab === tab.id ? 'active' : ''}`}
             >
               {tab.icon}
-              {tab.label}
+              <span className="nav-tab-label">{tab.label}</span>
               {tab.id === 'live' && <span className="ml-1 status-live text-[8px]" />}
             </button>
           ))}
@@ -510,6 +550,7 @@ export default function IntelPlatform() {
             rel="noopener noreferrer"
             className="nav-tab flex items-center gap-1.5 border-l border-border/30 ml-1 pl-2"
             style={{ color: 'var(--intel-blue)' }}
+            title="ORBIT — Space Surveillance"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="3" />
@@ -517,7 +558,7 @@ export default function IntelPlatform() {
               <path d="M12 2a10 10 0 0 0 0 20" />
               <path d="M2 12h20" />
             </svg>
-            ORBIT
+            <span className="nav-tab-label">ORBIT</span>
           </a>
           <a
             href="/sigint"
@@ -525,13 +566,14 @@ export default function IntelPlatform() {
             rel="noopener noreferrer"
             className="nav-tab flex items-center gap-1.5 pl-2"
             style={{ color: 'var(--intel-amber)' }}
+            title="SIGINT — Signal Intelligence"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M2 12h2m16 0h2M12 2v2m0 16v2" />
               <circle cx="12" cy="12" r="4" />
               <circle cx="12" cy="12" r="8" strokeDasharray="4 4" />
             </svg>
-            SIGINT
+            <span className="nav-tab-label">SIGINT</span>
           </a>
 
           <div className="ml-auto flex items-center gap-2 pr-2">
@@ -613,7 +655,7 @@ export default function IntelPlatform() {
 
       {/* ─── Main Content ────────────────────────────────────────────────── */}
       <main className="flex-1 overflow-hidden relative z-10">
-        {activeTab === "live" && <LiveTab region={selectedRegion} onExplore={handleExploreArticle} onVerify={handleVerifyArticle} initialCountryFilter={liveCountryFilter} onCountryFilterUsed={() => setLiveCountryFilter(undefined)} />}
+        {activeTab === "live" && <LiveTab region={selectedRegion} onExplore={handleExploreArticle} onVerify={handleVerifyArticle} initialCountryFilter={liveCountryFilter} onCountryFilterUsed={() => setLiveCountryFilter(undefined)} compactUI={compactUI} />}
         {activeTab === "compare" && <CompareTab region={selectedRegion} onDrillDownCountry={handleDrillDownCountry} />}
         {activeTab === "data" && <DataTab region={selectedRegion} />}
         {activeTab === "feed" && <FeedTab region={selectedRegion} onExplore={handleExploreArticle} onVerify={handleVerifyArticle} />}
@@ -624,7 +666,7 @@ export default function IntelPlatform() {
       </main>
 
       {/* ─── Live Ticker ─────────────────────────────────────────────────── */}
-      <LiveTicker region={selectedRegion} />
+      <LiveTicker region={selectedRegion} compact={compactUI} />
 
       {/* ─── Notification Panel ──────────────────────────────────────────── */}
       {showNotifications && (

@@ -32,9 +32,9 @@ interface TickerItem {
   publishedAt?: string;
 }
 
-interface LiveTickerProps { region: string; }
+interface LiveTickerProps { region: string; compact?: boolean; }
 
-export default function LiveTicker({ region }: LiveTickerProps) {
+export default function LiveTicker({ region, compact = false }: LiveTickerProps) {
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -114,16 +114,16 @@ export default function LiveTicker({ region }: LiveTickerProps) {
   const activeSourceCount = selectedSources.length;
 
   return (
-    <div className="flex-shrink-0 h-9 ticker-bar flex items-center z-50 relative border-t border-border">
+    <div className={`live-ticker flex-shrink-0 ticker-bar flex items-center z-50 relative border-t border-border ${compact ? "is-compact" : "h-9"}`}>
       {/* Label */}
-      <div className="flex items-center gap-2 px-3 border-r border-border flex-shrink-0 h-full bg-card/90">
+        <div className="ticker-live-label flex items-center gap-2 px-3 border-r border-border flex-shrink-0 h-full bg-card/90">
         <Radio size={10} className="text-primary blink" />
         <span className="text-orbitron text-[9px] font-bold text-primary tracking-widest">LIVE</span>
       </div>
 
       {/* Breaking indicator */}
       {(breaking?.length ?? 0) > 0 && (
-        <div className="flex items-center gap-1.5 px-2.5 border-r border-border flex-shrink-0 h-full bg-destructive/10">
+        <div className="ticker-breaking-label flex items-center gap-1.5 px-2.5 border-r border-border flex-shrink-0 h-full bg-destructive/10">
           <AlertTriangle size={9} className="text-destructive blink" />
           <span className="text-mono text-[9px] text-destructive font-bold">{breaking?.length} BREAKING</span>
         </div>
@@ -138,8 +138,8 @@ export default function LiveTicker({ region }: LiveTickerProps) {
       >
         <div
           ref={tickerRef}
-          className={`ticker-content ${tickerSpeed}`}
-          style={{ animationPlayState: isPaused ? 'paused' : 'running' }}
+          className={`ticker-content ${tickerSpeed} ${compact ? "ticker-content-compact" : ""}`}
+          style={{ animationPlayState: compact || isPaused ? 'paused' : 'running' }}
         >
           {displayItems.map((item, i) => {
             const isClickable = !!item.url;
@@ -176,7 +176,7 @@ export default function LiveTicker({ region }: LiveTickerProps) {
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[11px] px-5 flex items-center gap-1 flex-shrink-0 font-medium group hover:bg-primary/5 transition-colors rounded"
+                  className="ticker-item text-[11px] px-5 flex items-center gap-1 flex-shrink-0 font-medium group hover:bg-primary/5 transition-colors rounded"
                   onClick={e => e.stopPropagation()}
                 >
                   {content}
@@ -187,7 +187,7 @@ export default function LiveTicker({ region }: LiveTickerProps) {
             return (
               <span
                 key={i}
-                className="text-[11px] px-5 flex items-center gap-1 flex-shrink-0 font-medium"
+                className="ticker-item text-[11px] px-5 flex items-center gap-1 flex-shrink-0 font-medium"
               >
                 {content}
               </span>
