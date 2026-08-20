@@ -68,7 +68,7 @@ export default function IntelPlatform() {
   const [verifyArticleId, setVerifyArticleId] = useState<number | null>(null);
   const [liveCountryFilter, setLiveCountryFilter] = useState<string | undefined>(undefined);
   const [statusBarCollapsed, setStatusBarCollapsed] = useState(true);
-  const [compactPreference, setCompactPreference] = useState(true);
+  const [compactPreference, setCompactPreference] = useState(false);
   const [compactRequired, setCompactRequired] = useState(false);
   const compactUI = compactRequired || compactPreference;
 
@@ -520,11 +520,11 @@ export default function IntelPlatform() {
               <button
                 onClick={toggleCompactUI}
                 className={`compact-ui-toggle flex items-center gap-1 rounded border px-2 py-1 font-mono text-[9px] transition-all ${compactUI ? "border-primary/60 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary"}`}
-                title={compactUI ? "Use normal dashboard UI" : "Use compact dashboard UI"}
+                title={compactUI ? "Switch to normal dashboard UI" : "Switch to compact dashboard UI"}
                 aria-pressed={compactUI}
               >
                 <Activity size={10} />
-                <span>COMPACT</span>
+                <span>{compactUI ? "NORMAL" : "COMPACT"}</span>
               </button>
             )}
           </div>

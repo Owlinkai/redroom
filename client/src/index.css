@@ -262,6 +262,8 @@
 /* ─── Compact UI mode ─────────────────────────────────────────────────────── */
 .normal-ui .command-map-short { display: none; }
 .normal-ui .command-map-full { display: inline; }
+.normal-ui .dashboard-header { min-height: 4.75rem; }
+.normal-ui .live-command-bar { min-height: 3.2rem; }
 
 .live-command-bar.is-compact {
   gap: 0.35rem;
@@ -290,6 +292,7 @@
 .live-command-bar.is-compact .command-refresh { border-radius: 0.375rem; padding: 0.375rem; }
 
 .compact-ui .dashboard-header > :first-child { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.compact-ui .dashboard-header { min-height: 2.9rem; }
 .compact-ui .dashboard-header .nav-tab { padding: 0.3rem 0.65rem; font-size: 0.68rem; }
 .compact-ui .dashboard-header .nav-tab svg { width: 10px; height: 10px; }
 .compact-ui .dashboard-header .nav-tab-label { display: none; }
@@ -301,6 +304,9 @@
 .compact-ui .dashboard-header .header-icon-control { padding: 0.35rem; border-radius: 0.375rem; }
 .compact-ui .dashboard-header .header-control-label { display: none; }
 .compact-ui .dashboard-header .header-control svg { width: 11px; height: 11px; }
+.compact-ui .live-tab-shell.is-compact .live-intel-panel .text-\[11px\] { font-size: 0.625rem; }
+.compact-ui .live-tab-shell.is-compact .live-intel-panel .text-\[10px\] { font-size: 0.5625rem; }
+.compact-ui .live-tab-shell.is-compact .live-intel-panel .px-3 { padding-left: 0.5rem; padding-right: 0.5rem; }
 
 .live-ticker.is-compact { height: 1.65rem; min-height: 1.65rem; }
 .live-ticker.is-compact .ticker-live-label { gap: 0.25rem; padding: 0 0.45rem; }

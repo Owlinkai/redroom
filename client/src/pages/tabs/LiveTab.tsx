@@ -1090,7 +1090,7 @@ export default function LiveTab({ region, onExplore, onVerify, initialCountryFil
   }, [articles]);
 
   return (
-    <div className="relative flex flex-col h-full overflow-hidden bg-background">
+    <div className={`live-tab-shell ${compactUI ? "is-compact" : "is-normal"} relative flex flex-col h-full overflow-hidden bg-background`} data-ui-density={compactUI ? "compact" : "normal"}>
 
       {/* ══════════════════════════════════════════════════════════════════════
           TOP COMMAND BAR
@@ -1213,7 +1213,7 @@ export default function LiveTab({ region, onExplore, onVerify, initialCountryFil
 
         {/* ─── INTEL PANEL (left) ─────────────────────────────────────────── */}
         {showIntelPanel && (
-          <div className="flex-shrink-0 flex flex-col bg-background border-r border-border/60 overflow-hidden z-[1000] transition-all duration-300" style={{ width: intelPanelExpanded ? '480px' : '288px' }}>
+          <div className="live-intel-panel flex-shrink-0 flex flex-col bg-background border-r border-border/60 overflow-hidden z-[1000] transition-all duration-300" style={{ width: intelPanelExpanded ? (compactUI ? '360px' : '480px') : (compactUI ? '220px' : '288px') }}>
             {/* Panel header */}
             <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 border-b border-border/60">
               <div className="flex items-center gap-2">
