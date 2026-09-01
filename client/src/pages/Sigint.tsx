@@ -129,8 +129,10 @@ const LAYERS: LayerConfig[] = [
   { id: "space", label: "SPACE WX", icon: Zap, color: "#eab308", refreshInterval: 60000, description: "NOAA SWPC geomagnetic activity", shortcut: "7" },
 ];
 
-const DARK_TILE = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-const LIGHT_TILE = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+const SIGINT_NIGHT_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+const SIGINT_NIGHT_REFERENCE_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
+const SIGINT_LIGHT_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+const SIGINT_LIGHT_REFERENCE_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
 
 // Top bar menu items (simulated pages)
 const TOP_MENU_ITEMS = [
@@ -338,6 +340,7 @@ export default function SigintPage() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const nightReferenceLayerRef = useRef<L.TileLayer | null>(null);
   const markersRef = useRef<{ [key: string]: L.LayerGroup | any }>({});
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
   const highlightLayerRef = useRef<L.LayerGroup | null>(null);
@@ -710,8 +713,12 @@ export default function SigintPage() {
       attributionControl: false,
       preferCanvas: true, // Force canvas rendering globally
     });
-    const tile = L.tileLayer(isLight ? LIGHT_TILE : DARK_TILE, { maxZoom: 18 }).addTo(map);
+    const tile = L.tileLayer(isLight ? SIGINT_LIGHT_TILE : SIGINT_NIGHT_TILE, { maxZoom: 18 }).addTo(map);
     tileLayerRef.current = tile;
+    nightReferenceLayerRef.current = L.tileLayer(
+      isLight ? SIGINT_LIGHT_REFERENCE_TILE : SIGINT_NIGHT_REFERENCE_TILE,
+      { maxZoom: 18, zIndex: 300 },
+    ).addTo(map);
     mapRef.current = map;
 
     // Draw layer for polygon selection
@@ -963,10 +970,15 @@ export default function SigintPage() {
     }
   }, [drawMode, viewMode]);
 
-  // Update tile layer on theme change
+  // Keep operational overlays intact while the basemap tracks the selected theme.
   useEffect(() => {
     if (tileLayerRef.current) {
-      tileLayerRef.current.setUrl(isLight ? LIGHT_TILE : DARK_TILE);
+      tileLayerRef.current.setUrl(isLight ? SIGINT_LIGHT_TILE : SIGINT_NIGHT_TILE);
+    }
+    if (nightReferenceLayerRef.current) {
+      nightReferenceLayerRef.current.setUrl(
+        isLight ? SIGINT_LIGHT_REFERENCE_TILE : SIGINT_NIGHT_REFERENCE_TILE,
+      );
     }
   }, [isLight]);
 

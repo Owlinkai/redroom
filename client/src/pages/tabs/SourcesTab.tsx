@@ -28,8 +28,15 @@ import L from "leaflet";
 import 'leaflet.heat';
 import "leaflet/dist/leaflet.css";
 import { FetchingMonitor } from "./FetchingMonitor";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface SourcesTabProps { region: string; initialSubTab?: string; }
+
+const SOURCES_DARK_BASE_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+const SOURCES_DARK_REFERENCE_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
+const SOURCES_LIGHT_BASE_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+const SOURCES_LIGHT_REFERENCE_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
+const SOURCES_STREET_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}";
 
 // ─── Country → Coordinates lookup ─────────────────────────────────────────────
 const COUNTRY_COORDS: Record<string, [number, number]> = {
@@ -1358,7 +1365,11 @@ function SourcesMap({ region, onSwitchToMonitor }: { region: string; onSwitchToM
   const [selectedTier, setSelectedTier] = useState('all');
   const [showInactive, setShowInactive] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [baseMap, setBaseMap] = useState<'dark' | 'osm'>('dark');
+  const { theme } = useTheme();
+  const [baseMap, setBaseMap] = useState<'dark' | 'light' | 'osm'>(theme === 'light' ? 'light' : 'dark');
+  useEffect(() => {
+    setBaseMap(theme === 'light' ? 'light' : 'dark');
+  }, [theme]);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [showThreatOverlay, setShowThreatOverlay] = useState(false);
   const [colorMode, setColorMode] = useState<'status' | 'frequency'>('frequency');
@@ -1559,10 +1570,14 @@ function SourcesMap({ region, onSwitchToMonitor }: { region: string; onSwitchToM
             className={`px-2.5 py-1 rounded text-[9px] font-mono transition-colors ${
               baseMap === 'dark' ? 'bg-cyan-500/20 text-cyan-400' : 'text-muted-foreground/60 hover:text-foreground/60'
             }`}>DARK</button>
+          <button onClick={() => setBaseMap('light')}
+            className={`px-2.5 py-1 rounded text-[9px] font-mono transition-colors ${
+              baseMap === 'light' ? 'bg-cyan-500/20 text-cyan-400' : 'text-muted-foreground/60 hover:text-foreground/60'
+            }`}>LIGHT</button>
           <button onClick={() => setBaseMap('osm')}
             className={`px-2.5 py-1 rounded text-[9px] font-mono transition-colors ${
               baseMap === 'osm' ? 'bg-cyan-500/20 text-cyan-400' : 'text-muted-foreground/60 hover:text-foreground/60'
-            }`}>OSM</button>
+            }`}>STREET</button>
         </div>
 
         {/* Reset filters */}
@@ -1578,10 +1593,13 @@ function SourcesMap({ region, onSwitchToMonitor }: { region: string; onSwitchToM
       {/* ── MAP ──────────────────────────────────────────────────────────────── */}
       <div className="flex-1 relative" ref={mapWrapperRef}>
         <MapContainer center={[25, 45]} zoom={3} style={{ height: '100%', width: '100%', background: 'var(--background)' }} zoomControl={false}>
-          {baseMap === 'dark'
-            ? <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution="&copy; CartoDB"/>
-            : <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap"/>
-          }
+          {baseMap === 'dark' ? <>
+            <TileLayer key="sources-dark-base" url={SOURCES_DARK_BASE_TILE} attribution="Tiles &copy; Esri" maxZoom={18}/>
+            <TileLayer key="sources-dark-reference" url={SOURCES_DARK_REFERENCE_TILE} maxZoom={18} zIndex={300}/>
+          </> : baseMap === 'light' ? <>
+            <TileLayer key="sources-light-base" url={SOURCES_LIGHT_BASE_TILE} attribution="Tiles &copy; Esri" maxZoom={18}/>
+            <TileLayer key="sources-light-reference" url={SOURCES_LIGHT_REFERENCE_TILE} maxZoom={18} zIndex={300}/>
+          </> : <TileLayer key="sources-street-base" url={SOURCES_STREET_TILE} attribution="Tiles &copy; Esri" maxZoom={18}/>} 
           <MapResizer/>
           <ZoomControl position="bottomright"/>
           <ArticleHeatmapLayer groups={agencyGroups} visible={showHeatmap}/>

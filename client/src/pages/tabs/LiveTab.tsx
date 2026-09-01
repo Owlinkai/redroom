@@ -25,6 +25,14 @@ L.Icon.Default.mergeOptions({
 const MENA_CENTER: [number, number] = [28.0, 42.0];
 const MENA_ZOOM = 5;
 
+const ESRI_DARK_BASE_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+const ESRI_DARK_REFERENCE_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
+const ESRI_LIGHT_BASE_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+const ESRI_LIGHT_REFERENCE_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
+const ESRI_STREET_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}";
+const ESRI_SATELLITE_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const ESRI_TOPO_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}";
+
 // Region centre coordinates and zoom levels for auto-navigation
 const REGION_VIEW: Record<string, { center: [number, number]; zoom: number }> = {
   'MENA':               { center: [28.0,  42.0],  zoom: 4 },
@@ -1030,21 +1038,17 @@ export default function LiveTab({ region, onExplore, onVerify, initialCountryFil
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // Tile URL
-   const tileUrl = baseMap === 'satellite'
-    ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-    : baseMap === 'topo'
-    ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
-    : baseMap === 'osm'
-    ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+  // Polished public map styles. Canvas reference layers keep geographic labels
+  // readable without relying on a localized community-tile fallback.
+  const tileConfig = baseMap === 'dark'
+    ? { url: ESRI_DARK_BASE_TILE, referenceUrl: ESRI_DARK_REFERENCE_TILE, attribution: 'Tiles &copy; Esri' }
     : baseMap === 'light'
-    ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-  const tileAttrib = baseMap === 'osm'
-    ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    : baseMap === 'satellite' || baseMap === 'topo'
-    ? 'Tiles &copy; Esri'
-    : '&copy; <a href="https://carto.com/">CARTO</a>';
+    ? { url: ESRI_LIGHT_BASE_TILE, referenceUrl: ESRI_LIGHT_REFERENCE_TILE, attribution: 'Tiles &copy; Esri' }
+    : baseMap === 'satellite'
+    ? { url: ESRI_SATELLITE_TILE, attribution: 'Tiles &copy; Esri' }
+    : baseMap === 'topo'
+    ? { url: ESRI_TOPO_TILE, attribution: 'Tiles &copy; Esri' }
+    : { url: ESRI_STREET_TILE, attribution: 'Tiles &copy; Esri' };
 
   // Ticker items from event timeline
   const tickerItems = useMemo(() => {
@@ -1175,7 +1179,7 @@ export default function LiveTab({ region, onExplore, onVerify, initialCountryFil
               aria-label={`Use ${m} map`}
               className="command-map-button rounded-md px-2 py-1 text-[10px] font-medium capitalize transition-all"
               style={baseMap === m ? { background: 'var(--primary)', color: 'var(--primary-foreground)' } : { color: 'oklch(from var(--foreground) l c h / 0.3)' }}>
-              {compactUI ? (() => { const Icon = COMPACT_MAP_MODE_ICONS[m]; return <Icon size={10} />; })() : (m === 'osm' ? 'OSM' : m === 'dark' ? '🌑 Dark' : m === 'light' ? '💡 Light' : m === 'satellite' ? 'SAT' : 'Topo')}
+              {compactUI ? (() => { const Icon = COMPACT_MAP_MODE_ICONS[m]; return <Icon size={10} />; })() : (m === 'osm' ? 'Street' : m === 'dark' ? '🌑 Dark' : m === 'light' ? '💡 Light' : m === 'satellite' ? 'SAT' : 'Topo')}
             </button>
           ))}
         </div>
@@ -1557,7 +1561,8 @@ export default function LiveTab({ region, onExplore, onVerify, initialCountryFil
             zoomControl={false}
             attributionControl={true}
           >
-            <TileLayer url={tileUrl} attribution={tileAttrib} maxZoom={18}/>
+            <TileLayer url={tileConfig.url} attribution={tileConfig.attribution} maxZoom={18}/>
+            {tileConfig.referenceUrl && <TileLayer url={tileConfig.referenceUrl} maxZoom={18} zIndex={300}/>} 
             <FlyToCountry country={countryFilter}/>
             <FlyToCountry country={searchFlyTo}/>
             <FlyToRegion region={region}/>
