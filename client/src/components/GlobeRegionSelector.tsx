@@ -629,11 +629,11 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden"
-      style={{ background: isLight ? '#f1f5f9' : 'var(--background)' }}>
+      style={{ background: 'var(--background)' }}>
       {/* Scan-line overlay */}
-      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: isLight ? 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(100,0,0,0.003) 3px, rgba(100,0,0,0.003) 4px)' : 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(180,0,0,0.006) 3px, rgba(180,0,0,0.006) 4px)', zIndex: 1 }}/>
+      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: isLight ? 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(120,0,0,0.012) 3px, rgba(120,0,0,0.012) 4px)' : 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(180,0,0,0.006) 3px, rgba(180,0,0,0.006) 4px)', zIndex: 1 }}/>
       {/* Fine grid */}
-      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: isLight ? 'linear-gradient(rgba(200,0,0,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(200,0,0,0.025) 1px, transparent 1px)' : 'linear-gradient(rgba(200,0,0,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(200,0,0,0.018) 1px, transparent 1px)', backgroundSize: '80px 80px', zIndex: 1 }}/>
+      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: isLight ? 'linear-gradient(rgba(180,0,0,0.042) 1px, transparent 1px), linear-gradient(90deg, rgba(180,0,0,0.042) 1px, transparent 1px)' : 'linear-gradient(rgba(200,0,0,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(200,0,0,0.018) 1px, transparent 1px)', backgroundSize: '80px 80px', zIndex: 1 }}/>
       {/* Vignette */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 40%, oklch(from var(--foreground) l c h / 0.25) 100%)', zIndex: 1 }}/>
 
@@ -643,7 +643,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
       ))}
 
       {/* Top status bar */}
-      <div className="absolute top-0 left-0 right-0 hidden h-8 items-center justify-between px-6 pointer-events-none sm:flex" style={{ background: isLight ? 'linear-gradient(180deg, rgba(220,220,230,0.95) 0%, transparent 100%)' : 'linear-gradient(180deg, rgba(20,0,0,0.9) 0%, transparent 100%)', zIndex: 3 }}>
+      <div className="absolute top-0 left-0 right-0 hidden h-8 items-center justify-between px-6 pointer-events-none sm:flex" style={{ background: isLight ? 'linear-gradient(180deg, var(--surface-container-high) 0%, transparent 100%)' : 'linear-gradient(180deg, rgba(20,0,0,0.9) 0%, transparent 100%)', zIndex: 3 }}>
         <div className="flex items-center gap-4">
           <span className={`font-mono text-[9px] tracking-widest ${isLight ? "text-red-700/60" : "text-red-400/50"}`}>SYS:ONLINE</span>
           <span className={`font-mono text-[9px] tracking-widest ${isLight ? "text-green-700/60" : "text-green-400/50"}`}>SAT:LOCK</span>
@@ -678,7 +678,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
       {/* Boot screen */}
       {boot === 0 && (
         <div className="absolute inset-0 flex items-center justify-center z-10">
-          <div className="font-mono text-[11px] text-red-400/80 max-w-md text-left whitespace-pre-line leading-7 p-8 rounded-xl border border-red-900/30" style={{ background: isLight ? 'rgba(241,245,249,0.98)' : 'rgba(10,0,0,0.95)' }}>
+          <div className="font-mono text-[11px] text-red-400/80 max-w-md text-left whitespace-pre-line leading-7 p-8 rounded-xl border border-red-900/30" style={{ background: isLight ? 'var(--surface-container-lowest)' : 'rgba(10,0,0,0.95)' }}>
             {bootTxt}<span className="animate-pulse text-red-300">█</span>
           </div>
         </div>
@@ -717,7 +717,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
             <div className="hidden lg:flex w-56 flex-col gap-2 flex-shrink-0 min-h-0">
 
               {/* SIGINT/HUMINT bars */}
-              <div className="px-3 py-2.5 rounded-lg border border-red-900/25 flex-shrink-0" style={{ background: isLight ? 'rgba(255,255,255,0.9)' : 'rgba(15,0,0,0.7)' }}>
+              <div className="px-3 py-2.5 rounded-lg border border-red-900/25 flex-shrink-0" style={{ background: isLight ? 'var(--surface-container-lowest)' : 'rgba(15,0,0,0.7)' }}>
                 <div className={`text-[8px] font-mono tracking-widest mb-2 flex items-center gap-1.5 ${isLight ? "text-red-700/50" : "text-red-400/40"}`}>
                   <Radio size={8}/> SIGNAL INTERCEPTS
                 </div>
@@ -740,7 +740,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
 
               {/* Live intel activity feed */}
               <div className="flex-1 min-h-0 flex flex-col rounded-lg border border-red-900/25 overflow-hidden"
-                style={{ background: isLight ? 'rgba(255,255,255,0.88)' : 'rgba(10,0,0,0.75)' }}
+                style={{ background: isLight ? 'var(--surface-container-lowest)' : 'rgba(10,0,0,0.75)' }}
                 onMouseEnter={() => { feedHovered.current = true; }}
                 onMouseLeave={() => { feedHovered.current = false; }}>
 
@@ -803,7 +803,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
               </div>
 
               {/* Active alert */}
-              <div className="px-3 py-2 rounded-lg border border-red-700/30 flex-shrink-0" style={{ background: isLight ? 'rgba(254,242,242,0.9)' : 'rgba(30,0,0,0.6)' }}>
+              <div className="px-3 py-2 rounded-lg border border-red-700/30 flex-shrink-0" style={{ background: isLight ? 'oklch(0.955 0.022 25)' : 'rgba(30,0,0,0.6)' }}>
                 <div className={`text-[8px] font-mono tracking-widest mb-1 flex items-center gap-1.5 ${isLight ? "text-red-700/70" : "text-red-400/60"}`}>
                   <span className="animate-pulse">●</span> ACTIVE ALERTS
                 </div>
@@ -1194,7 +1194,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
             </div>
 
             {/* ── RIGHT: Region selector — same height as left panel ── */}
-            <div className="flex h-[220px] min-h-0 w-full flex-shrink-0 flex-col gap-0 overflow-hidden rounded-xl lg:h-full lg:w-64" style={{ border: isLight ? '1px solid rgba(200,0,0,0.3)' : '1px solid rgba(200,0,0,0.22)', background: isLight ? 'rgba(255,255,255,0.92)' : 'rgba(8,0,0,0.72)', boxShadow: isLight ? '0 0 24px rgba(180,0,0,0.06), inset 0 0 40px rgba(0,0,0,0.02)' : '0 0 24px rgba(180,0,0,0.08), inset 0 0 40px rgba(0,0,0,0.4)' }}>
+            <div className="flex h-[220px] min-h-0 w-full flex-shrink-0 flex-col gap-0 overflow-hidden rounded-xl lg:h-full lg:w-64" style={{ border: isLight ? '1px solid rgba(200,0,0,0.3)' : '1px solid rgba(200,0,0,0.22)', background: isLight ? 'var(--surface-container-lowest)' : 'rgba(8,0,0,0.72)', boxShadow: isLight ? '0 0 24px rgba(180,0,0,0.08), inset 0 0 40px oklch(0.25 0.02 248 / 0.025)' : '0 0 24px rgba(180,0,0,0.08), inset 0 0 40px rgba(0,0,0,0.4)' }}>
 
               {/* Search */}
               <div className="relative flex-shrink-0 px-2 pt-2 pb-2">
@@ -1202,7 +1202,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
                 <input type="text" value={q} onChange={e => handleSearch(e.target.value)}
                   placeholder="Search country or region..."
                   className="h-10 w-full rounded-lg py-2 pl-8 pr-8 font-mono text-[12px] outline-none transition-all lg:h-auto lg:text-[11px]"
-                  style={{ background: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(200,0,0,0.04)', border: isLight ? '1px solid rgba(200,0,0,0.25)' : '1px solid rgba(200,0,0,0.15)', color: 'var(--foreground)' }}
+                  style={{ background: isLight ? 'var(--surface-container-low)' : 'rgba(200,0,0,0.04)', border: isLight ? '1px solid rgba(200,0,0,0.25)' : '1px solid rgba(200,0,0,0.15)', color: 'var(--foreground)' }}
                   onFocus={e => (e.target.style.borderColor = 'rgba(220,0,0,0.5)')}
                   onBlur={e => (e.target.style.borderColor = 'rgba(200,0,0,0.15)')}
                 />
@@ -1220,7 +1220,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
               <div className="relative flex-1 min-h-0 overflow-hidden" style={{ borderTop: '1px solid rgba(200,0,0,0.12)' }}>
                 {/* Bottom fade mask */}
                 <div className="absolute bottom-0 left-0 right-0 h-10 pointer-events-none z-10"
-                  style={{ background: isLight ? 'linear-gradient(to top, rgba(255,255,255,0.9), transparent)' : 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}/>
+                  style={{ background: isLight ? 'linear-gradient(to top, var(--surface-container-lowest), transparent)' : 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}/>
 
                 <div className="overflow-y-auto flex flex-col gap-0 py-0"
                   style={{ maxHeight: 'calc(9 * 61px)', scrollbarWidth: 'thin', scrollbarColor: 'rgba(200,0,0,0.25) transparent', scrollBehavior: 'smooth' }}>

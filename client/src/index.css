@@ -74,40 +74,49 @@
 }
 
 .light {
-  --background:         oklch(0.97 0.003 248);
-  --card:               oklch(1.00 0.000 0);
-  --popover:            oklch(1.00 0.000 0);
-  --foreground:         oklch(0.18 0.010 248);
-  --card-foreground:    oklch(0.18 0.010 248);
-  --popover-foreground: oklch(0.18 0.010 248);
-  --primary:            oklch(0.44 0.13 200);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary:          oklch(0.93 0.004 248);
-  --secondary-foreground: oklch(0.18 0.010 248);
-  --muted:              oklch(0.94 0.004 248);
-  --muted-foreground:   oklch(0.46 0.010 248);
-  --accent:             oklch(0.44 0.13 200);
-  --accent-foreground:  oklch(0.98 0 0);
-  --destructive:        oklch(0.50 0.17 22);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border:             oklch(0.88 0.004 248);
-  --input:              oklch(0.93 0.004 248);
-  --ring:               oklch(0.44 0.13 200);
-  --chart-1: oklch(0.44 0.13 200);
-  --chart-2: oklch(0.42 0.15 155);
-  --chart-3: oklch(0.42 0.15 270);
-  --chart-4: oklch(0.50 0.15 55);
-  --chart-5: oklch(0.50 0.17 22);
-  --intel-green:  oklch(0.42 0.14 155);
-  --intel-red:    oklch(0.50 0.17 22);
-  --intel-yellow: oklch(0.54 0.15 82);
-  --intel-blue:   oklch(0.42 0.15 240);
-  --intel-purple: oklch(0.42 0.15 290);
-  --intel-orange: oklch(0.50 0.17 52);
-  --neon: oklch(0.44 0.13 200);
-  --neon-red: oklch(0.50 0.17 22);
-  --neon-yellow: oklch(0.54 0.15 82);
-  --neon-blue: oklch(0.42 0.15 240);
+  /* A cool, layered neutral system: less clinical than pure white, with
+     deliberate surface levels inspired by Material's tonal containers. */
+  --surface-container-lowest: oklch(0.992 0.004 248);
+  --surface-container-low:    oklch(0.980 0.006 248);
+  --surface-container:        oklch(0.963 0.009 248);
+  --surface-container-high:   oklch(0.944 0.011 248);
+  --surface-container-highest: oklch(0.925 0.014 248);
+  --surface-dim:              oklch(0.902 0.016 248);
+  --background:         oklch(0.955 0.008 248);
+  --card:               var(--surface-container-lowest);
+  --popover:            var(--surface-container-lowest);
+  --foreground:         oklch(0.245 0.020 248);
+  --card-foreground:    oklch(0.245 0.020 248);
+  --popover-foreground: oklch(0.245 0.020 248);
+  --primary:            oklch(0.430 0.135 204);
+  --primary-foreground: oklch(0.985 0.003 248);
+  --secondary:          var(--surface-container-high);
+  --secondary-foreground: oklch(0.305 0.019 248);
+  --muted:              var(--surface-container);
+  --muted-foreground:   oklch(0.465 0.020 248);
+  --accent:             oklch(0.915 0.032 204);
+  --accent-foreground:  oklch(0.275 0.055 204);
+  --destructive:        oklch(0.495 0.175 25);
+  --destructive-foreground: oklch(0.985 0.003 248);
+  --border:             oklch(0.825 0.018 248);
+  --input:              var(--surface-container-lowest);
+  --ring:               oklch(0.430 0.135 204);
+  --chart-1: oklch(0.430 0.135 204);
+  --chart-2: oklch(0.445 0.130 160);
+  --chart-3: oklch(0.470 0.135 285);
+  --chart-4: oklch(0.555 0.135 75);
+  --chart-5: oklch(0.495 0.175 25);
+  --intel-green:  oklch(0.445 0.130 160);
+  --intel-red:    oklch(0.495 0.175 25);
+  --intel-yellow: oklch(0.555 0.135 75);
+  --intel-blue:   oklch(0.455 0.130 245);
+  --intel-purple: oklch(0.470 0.135 285);
+  --intel-orange: oklch(0.540 0.155 55);
+  --neon: oklch(0.430 0.135 204);
+  --neon-red: oklch(0.495 0.175 25);
+  --neon-yellow: oklch(0.555 0.135 75);
+  --neon-blue: oklch(0.455 0.130 245);
+  color-scheme: light;
 }
 
 @layer base {
@@ -419,9 +428,59 @@
 .neon-border { border: 1px solid oklch(0.66 0.13 200 / 0.5) !important; box-shadow: 0 0 8px oklch(0.66 0.13 200 / 0.15); }
 .neon-border-red { border: 1px solid oklch(0.58 0.17 22 / 0.5) !important; box-shadow: 0 0 8px oklch(0.58 0.17 22 / 0.15); }
 
-.light .intel-card { box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); }
-.light .intel-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06); }
-.light .leaflet-popup-content-wrapper { box-shadow: 0 8px 32px rgba(0,0,0,0.14) !important; }
+.light .dashboard-header,
+.light .ticker-bar,
+.light .timeline-bar {
+  background: var(--surface-container-low) !important;
+  border-color: var(--border);
+}
+.light .intel-card,
+.light .filter-section,
+.light .leaflet-popup-content-wrapper {
+  background: var(--surface-container-lowest) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 1px 2px oklch(0.25 0.02 248 / 0.08), 0 5px 18px oklch(0.25 0.02 248 / 0.06);
+}
+.light .intel-card:hover {
+  border-color: oklch(0.430 0.135 204 / 0.48) !important;
+  box-shadow: 0 2px 4px oklch(0.25 0.02 248 / 0.08), 0 12px 28px oklch(0.25 0.02 248 / 0.10);
+}
+.light .intel-card-article { background: var(--surface-container-lowest); }
+.light .filter-section-header { background: var(--surface-container-high); }
+.light .filter-section-header:hover { background: oklch(0.915 0.032 204); }
+.light .filter-section-body { background: var(--surface-container-lowest); }
+.light .filter-chip {
+  background: var(--surface-container-lowest);
+  border-color: var(--border);
+  color: var(--muted-foreground);
+}
+.light .filter-chip:hover { background: oklch(0.915 0.032 204); }
+.light .filter-chip.active {
+  background: oklch(0.885 0.055 204);
+  color: oklch(0.275 0.055 204);
+  box-shadow: 0 0 0 1px oklch(0.430 0.135 204 / 0.22);
+}
+.light [class*="bg-white"] { background-color: var(--surface-container-lowest) !important; }
+.light [class*="bg-gray-50"] { background-color: var(--surface-container-low) !important; }
+.light [class*="bg-gray-100"] { background-color: var(--surface-container) !important; }
+.light [class*="bg-gray-200"] { background-color: var(--surface-container-high) !important; }
+.light [class*="border-gray-100"],
+.light [class*="border-gray-200"] { border-color: var(--border) !important; }
+.light [class*="border-gray-300"] { border-color: var(--surface-dim) !important; }
+.light [class*="text-gray-400"],
+.light [class*="text-slate-400"] { color: oklch(0.505 0.020 248) !important; }
+.light [class*="text-gray-500"],
+.light [class*="text-slate-500"] { color: oklch(0.430 0.020 248) !important; }
+.light [class*="text-gray-600"],
+.light [class*="text-slate-600"] { color: oklch(0.355 0.020 248) !important; }
+.light [class*="text-gray-700"],
+.light [class*="text-slate-700"] { color: oklch(0.305 0.020 248) !important; }
+.light [class*="text-gray-800"],
+.light [class*="text-gray-900"] { color: var(--foreground) !important; }
+.light input:not([type="checkbox"]):not([type="radio"]),
+.light textarea,
+.light select { background-color: var(--surface-container-lowest); }
+.light .leaflet-popup-content-wrapper { box-shadow: 0 10px 28px oklch(0.25 0.02 248 / 0.14) !important; }
 
 .text-intel-green  { color: var(--intel-green); }
 .text-intel-red    { color: var(--intel-red); }
