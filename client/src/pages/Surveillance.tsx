@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTheme } from "../contexts/ThemeContext";
+import { ThemeSelector } from "@/components/ThemeSelector";
 import { trpc } from "../lib/trpc";
 import { useLocation } from "wouter";
 import {
@@ -433,7 +434,7 @@ export default function SurveillancePage() {
   return (
     <div className="h-screen w-screen flex flex-col bg-background text-foreground overflow-hidden">
       {/* ─── Top Bar ──────────────────────────────────────────────────────── */}
-      <header className="h-11 flex items-center px-4 border-b border-border/50 bg-card/90 backdrop-blur-sm z-[9999] shrink-0">
+      <header className="portal-header flex items-center px-4 border-b border-border/50 bg-card/90 backdrop-blur-sm z-[9999] shrink-0">
         <button onClick={() => navigate("/sigint")} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mr-4">
           <ArrowLeft size={14} />
           <span className="text-[10px] font-mono uppercase tracking-wider">SIGINT</span>
@@ -464,18 +465,12 @@ export default function SurveillancePage() {
           )}
         </div>
 
-        {/* Theme toggle */}
-        <button onClick={toggleTheme}
-          className="ml-2 flex items-center gap-1.5 px-1.5 py-0.5 rounded font-mono text-[9px] border transition-all"
-          style={{ background: isLight ? 'rgba(245,158,11,0.12)' : 'rgba(99,102,241,0.12)', borderColor: isLight ? 'rgba(245,158,11,0.4)' : 'rgba(99,102,241,0.4)', color: isLight ? '#f59e0b' : '#818cf8' }}
-        >
-          {isLight ? <Moon size={10} /> : <Sun size={10} />}
-          <span className="hidden sm:inline">{isLight ? 'DARK' : 'LIGHT'}</span>
-        </button>
+        <div className="portal-header-actions ml-2">
+        <ThemeSelector />
         {/* Docs link */}
         <a
           href="/docs"
-          className="flex items-center gap-1 px-1.5 py-0.5 rounded font-mono text-[9px] border transition-all"
+          className="portal-header-action portal-header-action--docs"
           style={{ background: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.3)', color: 'rgba(34,197,94,0.85)', textDecoration: 'none' }}
         >
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -487,9 +482,10 @@ export default function SurveillancePage() {
         {/* Back to SIGINT */}
         <a
           href="/sigint"
-          className="flex items-center gap-1 px-1.5 py-0.5 rounded font-mono text-[9px] border transition-all"
+          className="portal-header-action portal-header-action--back"
           style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.3)', color: 'rgba(239,68,68,0.8)', textDecoration: 'none' }}
         >← SIGINT</a>
+        </div>
         {/* Right controls */}
         <div className="ml-auto flex items-center gap-1.5">
           {/* Camera Grid button — only show when 2+ cameras tracked */}

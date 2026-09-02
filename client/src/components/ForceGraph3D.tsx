@@ -146,6 +146,7 @@ export default function ForceGraph3D({
 }: ForceGraph3DProps) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
+  const isNavy = theme === 'navy';
   const mountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<any>(null);
   const sceneRef = useRef<any>(null);
@@ -318,12 +319,12 @@ export default function ForceGraph3D({
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
         renderer.setSize(W, H);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.setClearColor(isLight ? 0xf0f4f8 : 0x04080e, 1);
+        renderer.setClearColor(isLight ? 0xf0f4f8 : isNavy ? 0x071a38 : 0x04080e, 1);
         el.appendChild(renderer.domElement);
         rendererRef.current = renderer;
 
         scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(isLight ? 0xf0f4f8 : 0x04080e, 0.00035);
+        scene.fog = new THREE.FogExp2(isLight ? 0xf0f4f8 : isNavy ? 0x071a38 : 0x04080e, 0.00035);
         sceneRef.current = scene;
 
         camera = new THREE.PerspectiveCamera(55, W / H, 1, 20000);
@@ -344,11 +345,11 @@ export default function ForceGraph3D({
         controlsRef.current = controls;
 
         // Lights
-        scene.add(new THREE.AmbientLight(isLight ? 0xffffff : 0x0a1628, isLight ? 3 : 6));
-        const sun = new THREE.DirectionalLight(isLight ? 0x6699cc : 0x4488ff, isLight ? 1.5 : 2.5);
+        scene.add(new THREE.AmbientLight(isLight ? 0xffffff : isNavy ? 0x0e386f : 0x0a1628, isLight ? 3 : isNavy ? 4 : 6));
+        const sun = new THREE.DirectionalLight(isLight ? 0x6699cc : isNavy ? 0x63b8ff : 0x4488ff, isLight ? 1.5 : 2.5);
         sun.position.set(200, 800, 400);
         scene.add(sun);
-        const fill = new THREE.DirectionalLight(isLight ? 0xcc8844 : 0xff6622, 0.8);
+        const fill = new THREE.DirectionalLight(isLight ? 0xcc8844 : isNavy ? 0x2c7edb : 0xff6622, 0.8);
         fill.position.set(-300, -200, -300);
         scene.add(fill);
 
@@ -358,7 +359,7 @@ export default function ForceGraph3D({
         const starPos = new Float32Array(starCount * 3);
         for (let i = 0; i < starCount * 3; i++) starPos[i] = (Math.random() - 0.5) * 16000;
         starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
-        const starMat = new THREE.PointsMaterial({ color: isLight ? 0x8899aa : 0xffffff, size: 1.2, sizeAttenuation: true, transparent: true, opacity: isLight ? 0.15 : 0.35 });
+        const starMat = new THREE.PointsMaterial({ color: isLight ? 0x8899aa : isNavy ? 0x9bd1ff : 0xffffff, size: 1.2, sizeAttenuation: true, transparent: true, opacity: isLight ? 0.15 : isNavy ? 0.28 : 0.35 });
         scene.add(new THREE.Points(starGeo, starMat));
       } else {
         // Mode switch: clear only nodes, edges, layer planes — keep renderer/camera/controls/stars/lights
@@ -1154,7 +1155,7 @@ export default function ForceGraph3D({
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes.length, edges.length, activeLinkType, primaryNodeId, mode, isLight]);
+  }, [nodes.length, edges.length, activeLinkType, primaryNodeId, mode, isLight, isNavy]);
 
   // On full unmount: dispose renderer
   useEffect(() => {

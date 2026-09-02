@@ -7,6 +7,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { UpgradeButton } from "@/components/UpgradeButton";
 import { trpc } from "../lib/trpc";
 import { useLiveStream } from "../hooks/useLiveStream";
+import { ThemeSelector } from "@/components/ThemeSelector";
 import {
   Plane, Ship, Camera, Activity, Flame, Cloud, Zap,
   Eye, EyeOff, Sun, Moon, X, ExternalLink,
@@ -2162,7 +2163,7 @@ export default function SigintPage() {
       <DisclaimerModal />
       <SessionIndicator />
       {/* ─── Top Command Bar ──────────────────────────────────────────────── */}
-      <header className="h-11 flex items-center px-3 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0 z-[9999] relative">
+      <header className="portal-header flex items-center px-3 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0 z-[9999] relative">
         {/* Logo / Title */}
         <div className="flex items-center gap-2 mr-4">
           <Radar size={16} style={{ color: "var(--intel-amber, #f59e0b)" }} />
@@ -2208,7 +2209,7 @@ export default function SigintPage() {
         </nav>
 
         {/* Right side: stats + controls */}
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto portal-header-actions">
           {/* Stats */}
           {sigintVisible("stats") && (
           <div className="hidden lg:flex items-center gap-2">
@@ -2246,11 +2247,11 @@ export default function SigintPage() {
           </button>
           )}
           {/* Upgrade button */}
-          {sigintVisible("upgrade") && <UpgradeButton portal="sigint" variant="compact" />}
+          {sigintVisible("upgrade") && <UpgradeButton portal="sigint" variant="compact" className="portal-upgrade" />}
           {/* Docs */}
           {sigintVisible("docs") && (
           <a href="/docs"
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] border transition-all"
+            className="portal-header-action portal-header-action--docs"
             style={{ background: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.35)', color: 'rgba(34,197,94,0.9)', textDecoration: 'none' }}
             title="Documentation"
           >
@@ -2265,7 +2266,7 @@ export default function SigintPage() {
           {sigintVisible("fullscreen") && (
           <button onClick={toggleFullscreen}
             title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-            className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] border transition-all"
+            className="portal-header-action hidden sm:inline-flex"
             style={{ background: 'transparent', borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
           >
             {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
@@ -2273,13 +2274,7 @@ export default function SigintPage() {
           )}
           {/* Theme */}
           {sigintVisible("theme") && (
-          <button onClick={toggleTheme}
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] border transition-all"
-            style={{ background: isLight ? 'rgba(245,158,11,0.12)' : 'rgba(99,102,241,0.12)', borderColor: isLight ? 'rgba(245,158,11,0.4)' : 'rgba(99,102,241,0.4)', color: isLight ? '#f59e0b' : '#818cf8' }}
-          >
-            {isLight ? <Moon size={11} /> : <Sun size={11} />}
-            <span className="hidden sm:inline">{isLight ? 'DARK' : 'LIGHT'}</span>
-          </button>
+          <ThemeSelector />
           )}
           {/* Custom toggles from AdminCMS */}
           {sigintCustomToggles.map(ct => (
@@ -2298,7 +2293,7 @@ export default function SigintPage() {
           {/* Back */}
           {sigintVisible("back") && (
           <a href="/"
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] border transition-all"
+            className="portal-header-action portal-header-action--back"
             style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.3)', color: 'rgba(239,68,68,0.8)', textDecoration: 'none' }}
           >← INTEL</a>
           )}

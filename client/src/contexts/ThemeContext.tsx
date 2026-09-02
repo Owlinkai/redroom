@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark" | "navy";
 
 interface ThemeContextType {
   theme: Theme;
   toggleTheme?: () => void;
+  toggleNavy?: () => void;
+  setTheme?: (theme: Theme) => void;
   switchable: boolean;
 }
 
@@ -31,13 +33,9 @@ export function ThemeProvider({
 
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-      root.classList.remove("light");
-    } else {
-      root.classList.remove("dark");
-      root.classList.add("light");
-    }
+    root.classList.remove("light", "dark", "navy");
+    root.classList.add(theme);
+    root.dataset.theme = theme;
 
     if (switchable) {
       localStorage.setItem("theme", theme);
@@ -46,12 +44,37 @@ export function ThemeProvider({
 
   const toggleTheme = switchable
     ? () => {
-        setTheme(prev => (prev === "light" ? "dark" : "light"));
+        setTheme(prev => {
+          if (prev === "navy") {
+            try {
+              return localStorage.getItem("redroom_theme_before_navy") === "light" ? "light" : "dark";
+            } catch {
+              return "dark";
+            }
+          }
+          return prev === "light" ? "dark" : "light";
+        });
+      }
+    : undefined;
+
+  const toggleNavy = switchable
+    ? () => {
+        setTheme(prev => {
+          if (prev === "navy") {
+            try {
+              return localStorage.getItem("redroom_theme_before_navy") === "light" ? "light" : "dark";
+            } catch {
+              return "dark";
+            }
+          }
+          try { localStorage.setItem("redroom_theme_before_navy", prev); } catch {}
+          return "navy";
+        });
       }
     : undefined;
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, switchable }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, toggleNavy, setTheme, switchable }}>
       {children}
     </ThemeContext.Provider>
   );

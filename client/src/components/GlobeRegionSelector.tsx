@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { usePageVisible } from "@/hooks/usePageVisible";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ThemeSelector } from "@/components/ThemeSelector";
 
 interface Props {
   onSelect: (region: string) => void;
@@ -336,6 +337,7 @@ function StatusBadge({ status, color }: { status: IntelEvent["status"]; color: s
 export default function GlobeRegionSelector({ onSelect }: Props) {
   const { theme, toggleTheme } = useTheme();
   const isLight = theme === 'light';
+  const isNavy = theme === 'navy';
 
   // Default to dark mode on first visit to this page
   useEffect(() => {
@@ -464,8 +466,9 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
     const specTex = loader.load(EARTH_SPEC_URL);
 
     const earthMat = new THREE.MeshPhongMaterial({
-      map: dayTex, emissiveMap: nightTex, emissive: new THREE.Color(0x112244),
-      emissiveIntensity: 0.55, specularMap: specTex, specular: new THREE.Color(0x336699),
+      map: dayTex, color: new THREE.Color(isNavy ? 0x6faee8 : 0xffffff), emissiveMap: nightTex,
+      emissive: new THREE.Color(isNavy ? 0x0d5cba : 0x112244),
+      emissiveIntensity: isNavy ? 0.82 : 0.55, specularMap: specTex, specular: new THREE.Color(isNavy ? 0x75c5ff : 0x336699),
       shininess: 18,
     });
     const earthGeo = new THREE.SphereGeometry(1, 64, 64);
@@ -474,17 +477,22 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
     globeRef.current = earth;
 
     // Atmosphere
-    const atmMat = new THREE.MeshPhongMaterial({ color: 0x4488ff, transparent: true, opacity: 0.06, side: THREE.FrontSide });
+    const atmMat = new THREE.MeshPhongMaterial({ color: isNavy ? 0x58b7ff : 0x4488ff, transparent: true, opacity: isNavy ? 0.16 : 0.06, side: THREE.FrontSide });
     scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.025, 32, 32), atmMat));
 
     // Lights
-    const sun = new THREE.DirectionalLight(0xfff5e0, 1.6);
+    const sun = new THREE.DirectionalLight(isNavy ? 0x9dd7ff : 0xfff5e0, isNavy ? 2.15 : 1.6);
     sun.position.set(5, 3, 5);
     scene.add(sun);
-    scene.add(new THREE.AmbientLight(0x112233, 0.6));
+    scene.add(new THREE.AmbientLight(isNavy ? 0x1c5791 : 0x112233, isNavy ? 1.15 : 0.6));
 
     // Data-stream arcs
-    const arcPairs: Array<[[number,number],[number,number],number]> = [
+    const arcPairs: Array<[[number,number],[number,number],number]> = isNavy ? [
+      [[38,-97],[51,10],0x69bfff],[[38,-97],[35,105],0x4c9cff],
+      [[51,10],[35,38],0x83ceff],[[54,-2],[49,32],0x3f8ae8],
+      [[24,54],[35,105],0x77bfff],[[35,105],[37,128],0x579de8],
+      [[21,78],[33,53],0x73b8ff],[[38,-97],[54,-2],0x91d3ff],
+    ] : [
       [[38,-97],[51,10],0x4488ff],[[38,-97],[35,105],0x44ffcc],
       [[51,10],[35,38],0xff4444],[[54,-2],[49,32],0xff8800],
       [[24,54],[35,105],0xffcc44],[[35,105],[37,128],0xffaa22],
@@ -501,7 +509,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
     HOTSPOTS.forEach(h => {
       const pos = ll2v(h.lat, h.lon, 1.01);
       const ringGeo = new THREE.RingGeometry(0.01, 0.025, 16);
-      const col = THREAT_HEX[REGIONS.find(r => r.id === h.region)?.threatLevel || "MODERATE"];
+      const col = isNavy ? 0x64b8ff : THREAT_HEX[REGIONS.find(r => r.id === h.region)?.threatLevel || "MODERATE"];
       const ringMat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.position.copy(pos);
@@ -572,7 +580,7 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
       window.removeEventListener("resize", onResize);
       renderer.dispose();
     };
-  }, [boot]);
+  }, [boot, isNavy]);
 
   // Pointer drag
   const onPointerDown = useCallback((e: React.PointerEvent) => {
@@ -661,20 +669,10 @@ export default function GlobeRegionSelector({ onSelect }: Props) {
         </div>
       </div>
 
-      {/* Theme toggle — top-right corner, icon only */}
-      <button
-        onClick={toggleTheme}
-        className="absolute top-3 right-3 z-[10] flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 hover:scale-110 sm:top-10 sm:right-4"
-        style={{
-          background: isLight ? 'rgba(220,38,38,0.10)' : 'rgba(220,38,38,0.10)',
-          border: isLight ? '1px solid rgba(220,38,38,0.35)' : '1px solid rgba(220,38,38,0.35)',
-          color: isLight ? '#b91c1c' : 'rgba(252,165,165,0.9)',
-          boxShadow: isLight ? '0 0 16px rgba(220,38,38,0.18), 0 2px 8px rgba(0,0,0,0.08)' : '0 0 16px rgba(220,38,38,0.18), 0 2px 8px rgba(0,0,0,0.3)',
-        }}
-        title={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
-      >
-        {isLight ? <Moon size={15} /> : <Sun size={15} />}
-      </button>
+      {/* Shared global theme selector */}
+      <div className="absolute top-3 right-3 z-[10] sm:top-10 sm:right-4">
+        <ThemeSelector />
+      </div>
       {/* Boot screen */}
       {boot === 0 && (
         <div className="absolute inset-0 flex items-center justify-center z-10">

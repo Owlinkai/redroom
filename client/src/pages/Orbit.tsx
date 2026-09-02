@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { ThemeSelector } from "@/components/ThemeSelector";
 import { loadPrefs, type HeaderItem } from "@/lib/headerPrefs";
 import { Sun, Moon, RotateCcw, Maximize2, Minimize2 } from "lucide-react";
 import DisclaimerModal from "@/components/DisclaimerModal";
@@ -3719,7 +3720,7 @@ export default function Orbit() {
       />
 
       {/* ── Top navigation bar ── */}
-      <div className="absolute top-0 left-0 right-0 z-30 flex items-center px-3 py-1.5 gap-1.5"
+      <div className="portal-header absolute top-0 left-0 right-0 z-30 flex items-center px-3 py-1.5 gap-1.5"
         style={{ background: "oklch(from var(--background) l c h / 0.95)", borderBottom: "1px solid var(--border)", backdropFilter: 'blur(8px)', minHeight: 48 }}>
         {/* Logo */}
         <div className="flex items-center gap-1.5 shrink-0 mr-1">
@@ -3761,7 +3762,7 @@ export default function Orbit() {
           </button>
         ))}
         {/* Right controls — all compact, single line */}
-        <div className="ml-auto flex items-center gap-1 shrink-0">
+        <div className="ml-auto portal-header-actions shrink-0">
           {/* Custom toggles from AdminCMS */}
           {orbitCustomToggles.map(ct => (
             ct.isExternal
@@ -3807,11 +3808,11 @@ export default function Orbit() {
             {isLive ? "⊙ LIVE" : "⊙ PSED"}
           </button>
           {/* Upgrade button */}
-          {orbitVisible("upgrade") && <UpgradeButton portal="orbit" variant="compact" />}
+          {orbitVisible("upgrade") && <UpgradeButton portal="orbit" variant="compact" className="portal-upgrade" />}
           {/* Docs */}
           {orbitVisible("docs") && (
           <a href="/docs"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-[11px] border transition-all hover:opacity-100 shrink-0"
+            className="portal-header-action portal-header-action--docs shrink-0"
             style={{ background: "rgba(34,197,94,0.08)", borderColor: "rgba(34,197,94,0.3)", color: "rgba(34,197,94,0.8)", textDecoration: "none" }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -3824,24 +3825,19 @@ export default function Orbit() {
           {orbitVisible("fullscreen") && (
           <button onClick={toggleFullscreen}
             title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-            className="px-2.5 py-1 rounded font-mono text-[11px] border transition-all shrink-0"
+            className="portal-header-action shrink-0"
             style={{ background: "transparent", borderColor: "oklch(from var(--foreground) l c h / 0.15)", color: "oklch(from var(--foreground) l c h / 0.5)" }}>
             {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
           </button>
           )}
           {/* Theme */}
           {orbitVisible("theme") && (
-          <button onClick={toggleTheme}
-            title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
-            className="px-2.5 py-1 rounded font-mono text-[11px] border transition-all shrink-0"
-            style={{ background: isLight ? "rgba(245,158,11,0.15)" : "rgba(99,102,241,0.15)", borderColor: isLight ? "rgba(245,158,11,0.5)" : "rgba(99,102,241,0.5)", color: isLight ? "#f59e0b" : "#818cf8" }}>
-            {isLight ? <Moon size={12} /> : <Sun size={12} />}
-          </button>
+          <ThemeSelector />
           )}
           {/* Back */}
           {orbitVisible("back") && (
           <a href="/"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-[11px] border transition-all hover:opacity-100 shrink-0"
+            className="portal-header-action portal-header-action--back shrink-0"
             style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.3)", color: "rgba(239,68,68,0.8)", textDecoration: "none" }}>
             ← INTEL
           </a>

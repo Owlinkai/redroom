@@ -60,7 +60,7 @@ export function UpgradeButton({ portal, variant = "compact", className = "" }: U
       <button
         onClick={handleClick}
         title="Upgrade to Enterprise — owlink.ai/redroom"
-        className="relative flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] border transition-all duration-200 overflow-hidden select-none"
+        className="upgrade-button relative flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] border transition-all duration-200 overflow-hidden select-none"
         style={{
           background: clicked
             ? "rgba(180,130,20,0.35)"

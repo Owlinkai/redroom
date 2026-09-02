@@ -8,6 +8,7 @@ import ExploreTab from "./tabs/ExploreTab";
 import LiveTicker from "@/components/LiveTicker";
 import NotificationPanel from "@/components/NotificationPanel";
 import GlobeRegionSelector from "@/components/GlobeRegionSelector";
+import { ThemeSelector } from "@/components/ThemeSelector";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
@@ -294,7 +295,7 @@ export default function IntelPlatform() {
           <div key="region" className="relative">
             <button
               onClick={() => setShowRegionDropdown(v => !v)}
-              className="header-control flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 border border-border text-mono text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition-all"
+              className="portal-header-action header-control flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 text-mono text-[10px]"
               title={`Select intelligence region: ${ov.labelOverride ?? selectedRegion}`}
               aria-label={`Select intelligence region: ${ov.labelOverride ?? selectedRegion}`}
               style={ov.textColor || ov.bgColor ? ovStyle({}) : undefined}
@@ -342,7 +343,7 @@ export default function IntelPlatform() {
             key="crawl"
             onClick={handleCrawl}
             disabled={crawling}
-            className="header-control relative hidden sm:flex items-center gap-1.5 px-3 py-1 border border-border text-mono text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition-all disabled:opacity-50"
+            className="portal-header-action header-control relative hidden sm:inline-flex items-center gap-1.5 px-3 py-1 text-mono text-[10px] disabled:opacity-50"
             title={`Trigger intelligence crawl${activeMissionCount > 0 ? ` · ${activeMissionCount} active mission${activeMissionCount !== 1 ? 's' : ''}` : ''}`}
             style={ov.textColor || ov.bgColor ? ovStyle({}) : undefined}
           >
@@ -361,7 +362,7 @@ export default function IntelPlatform() {
           <button
             key="notifs"
             onClick={() => setShowNotifications(v => !v)}
-            className="header-icon-control relative flex items-center gap-1 px-2 py-1 border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all"
+            className="portal-header-action header-icon-control relative flex items-center gap-1 px-2 py-1"
             title={ov.labelOverride ?? (unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications")}
             aria-label={ov.labelOverride ?? (unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications")}
             style={ov.textColor || ov.bgColor ? ovStyle({}) : undefined}
@@ -384,7 +385,7 @@ export default function IntelPlatform() {
           <button
             key="fullscreen"
             onClick={toggleFullscreen}
-            className="header-icon-control hidden sm:flex items-center gap-1 px-2 py-1 border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all"
+            className="portal-header-action hidden sm:inline-flex"
             title={ov.labelOverride ?? (isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen')}
             style={ov.textColor || ov.bgColor ? ovStyle({}) : undefined}
           >
@@ -393,14 +394,14 @@ export default function IntelPlatform() {
         );
 
       case "upgrade":
-        return <UpgradeButton key="upgrade" portal="intel" variant={compactUI ? "icon-only" : "compact"} />;
+        return <UpgradeButton key="upgrade" portal="intel" variant={compactUI ? "icon-only" : "compact"} className="portal-upgrade" />;
 
       case "docs":
         return (
           <a
             key="docs"
             href="/docs"
-            className="header-control flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] border transition-all"
+            className="portal-header-action portal-header-action--docs"
             style={ovStyle({ background: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.35)', color: 'rgba(34,197,94,0.9)', textDecoration: 'none' })}
             title="Documentation"
           >
@@ -414,20 +415,7 @@ export default function IntelPlatform() {
 
       case "theme":
         return (
-          <button
-            key="theme"
-            onClick={toggleTheme}
-            className="header-control flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[10px] border transition-all"
-            style={ovStyle({
-              background: theme === 'light' ? 'rgba(245,158,11,0.12)' : 'rgba(99,102,241,0.12)',
-              borderColor: theme === 'light' ? 'rgba(245,158,11,0.4)' : 'rgba(99,102,241,0.4)',
-              color: theme === 'light' ? '#f59e0b' : '#818cf8',
-            })}
-            title="Toggle theme"
-          >
-            {theme === 'dark' ? <Sun size={11} /> : <Moon size={11} />}
-            <span className="header-control-label hidden sm:inline">{ov.labelOverride ?? (theme === 'dark' ? 'LIGHT' : 'DARK')}</span>
-          </button>
+          <ThemeSelector key={id} compact={compactUI} />
         );
 
       default:
@@ -452,7 +440,7 @@ export default function IntelPlatform() {
       <div className="scanline" />
 
       {/* ─── Header ─────────────────────────────────────────────────────── */}
-      <header className="dashboard-header relative z-50 flex-shrink-0 border-b border-border bg-card/95 backdrop-blur-sm">
+      <header className="dashboard-header portal-header relative z-50 flex-shrink-0 border-b border-border bg-card/95 backdrop-blur-sm">
         {/* Top bar — 3-column: logo | center stats | controls */}
         <div className="grid grid-cols-[auto_1fr_auto] items-center px-2 md:px-4 py-1.5 border-b border-border/50">
           {/* Logo (left) */}
@@ -486,7 +474,7 @@ export default function IntelPlatform() {
           </div>
 
           {/* Controls (right) — order and visibility driven by headerPrefs (editable in AdminCMS › HEADERS) */}
-          <div className="flex items-center justify-end gap-1 md:gap-2">
+          <div className="portal-header-actions justify-end">
             {orderedControlIds.map(id => {
               // Skip center items — they are rendered in the center section
               if (id === "articles" || id === "threatcon" || id === "datetime") return null;
