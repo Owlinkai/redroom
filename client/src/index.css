@@ -37,6 +37,11 @@
 
 :root {
   --radius: 0.5rem;
+  --surface-container-lowest: oklch(0.175 0.009 248);
+  --surface-container-low:    oklch(0.190 0.009 248);
+  --surface-container:        oklch(0.205 0.009 248);
+  --surface-container-high:   oklch(0.225 0.010 248);
+  --surface-container-highest: oklch(0.245 0.011 248);
   --background:         oklch(0.13 0.008 248);
   --card:               oklch(0.17 0.008 248);
   --popover:            oklch(0.17 0.008 248);
@@ -121,6 +126,11 @@
 
 /* ── Navy: NASA-inspired blue operational interface ───────────────────────── */
 .navy {
+  --surface-container-lowest: oklch(0.175 0.040 252);
+  --surface-container-low:    oklch(0.190 0.043 252);
+  --surface-container:        oklch(0.210 0.047 252);
+  --surface-container-high:   oklch(0.230 0.052 252);
+  --surface-container-highest: oklch(0.255 0.056 252);
   --background:         oklch(0.155 0.038 252);
   --card:               oklch(0.195 0.044 252);
   --popover:            oklch(0.215 0.047 252);
@@ -564,8 +574,10 @@
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface-container-high);
-  box-shadow: 0 14px 34px oklch(from var(--foreground) l c h / 0.18);
+  background: var(--surface-container-high) !important;
+  opacity: 1;
+  backdrop-filter: none;
+  box-shadow: 0 18px 42px oklch(from var(--foreground) l c h / 0.24), 0 0 0 1px color-mix(in oklab, var(--border) 65%, transparent);
   padding: 4px;
 }
 .theme-selector-option {
@@ -576,14 +588,14 @@
   gap: 8px;
   border: 0;
   border-radius: 5px;
-  background: transparent;
+  background: var(--surface-container-high);
   color: var(--muted-foreground);
   padding: 8px;
   text-align: left;
   transition: background 140ms ease, color 140ms ease;
 }
 .theme-selector-option:hover,
-.theme-selector-option.is-selected { background: color-mix(in oklab, var(--primary) 12%, transparent); color: var(--foreground); }
+.theme-selector-option.is-selected { background: color-mix(in oklab, var(--primary) 18%, var(--surface-container-high)); color: var(--foreground); }
 .theme-selector-option-copy { display: grid; gap: 2px; font: 600 10px/1 var(--font-mono, ui-monospace, monospace); letter-spacing: 0.05em; text-transform: uppercase; }
 .theme-selector-option-copy small { color: var(--muted-foreground); font-size: 8px; font-weight: 400; letter-spacing: 0; text-transform: none; }
 .theme-selector-option.is-selected svg { color: var(--primary); }
