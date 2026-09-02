@@ -9,6 +9,7 @@ import LiveTicker from "@/components/LiveTicker";
 import NotificationPanel from "@/components/NotificationPanel";
 import GlobeRegionSelector from "@/components/GlobeRegionSelector";
 import { ThemeSelector } from "@/components/ThemeSelector";
+import { NavyThemeAnnouncement } from "@/components/NavyThemeAnnouncement";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
@@ -436,6 +437,7 @@ export default function IntelPlatform() {
       <DisclaimerModal />
       <SessionIndicator />
       {showOnboarding && <GlobeRegionSelector onSelect={handleRegionSelect} />}
+      {!showOnboarding && <NavyThemeAnnouncement />}
       <div className="grid-overlay" />
       <div className="scanline" />
 
