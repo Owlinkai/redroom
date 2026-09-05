@@ -151,7 +151,7 @@ async function getAllCCTVCamerasFromDB(): Promise<any[]> {
   }
 }
 // ─── Maritime: Real AIS from aisstream.io WebSocket (Global Coverage) ────────
-// Uses the Osiris methodology: persistent WebSocket connection to aisstream.io
+// Uses a persistent WebSocket connection to aisstream.io
 // with a global bounding box, caching vessel positions in memory.
 const globalForAis = globalThis as unknown as {
   shipsCache: Map<number, any>;
@@ -435,7 +435,7 @@ async function fetchMilitaryAircraft(): Promise<any[]> {
   return militaryCache.aircraft;
 }
 
-// adsb.lol 6-region definitions (Osiris methodology)
+// adsb.lol 6-region coverage definitions
 const ADSB_REGIONS = [
   { lat: 39.8, lon: -98.5, dist: 2000, name: "North America" },
   { lat: 50.0, lon: 15.0,  dist: 2000, name: "Europe" },
