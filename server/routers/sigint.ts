@@ -757,6 +757,22 @@ Be factual, concise, and intelligence-focused. Use current 2024-2025 data.`,
       const LIVE_SOURCE_REFS: Record<string, string> = {
         'TfL JamCam': 'https://api.tfl.gov.uk/Place/Type/JamCam',
         'ASFINAG': 'https://www.asfinag.at/verkehr-sicherheit/webcams/',
+        'ODOT TripCheck': 'https://www.tripcheck.com/',
+        'Caltrans QuickMap': 'https://quickmap.dot.ca.gov/',
+        'NZTA Waka Kotahi': 'https://trafficnz.info/',
+        'DGT Spain': 'https://www.dgt.es/conoce-el-estado-del-trafico/camaras-de-trafico/',
+        'Taiwan Highway Bureau': 'https://thbapp.thb.gov.tw/opendata/',
+        'Hong Kong Transport Department': 'https://data.gov.hk/en-data/dataset/hk-td-sm_1-traffic-snapshot-images',
+        'Fintraffic': 'https://www.digitraffic.fi/en/road-traffic/',
+        'LTA Singapore': 'https://data.gov.sg/datasets?query=traffic%20images',
+        'WSDOT': 'https://wsdot.com/travel/real-time/map/',
+        'Ontario 511': 'https://511on.ca/cctv',
+        'FDOT Florida 511': 'https://fl511.com/cctv',
+        'Québec 511': 'https://www.quebec511.info/en/Diffusion/EtatReseau/Cameras.aspx',
+        'DriveBC': 'https://www.drivebc.ca/cameras',
+        'City of Toronto': 'https://www.toronto.ca/services-payments/streets-parking-transportation/road-restrictions-closures/restrictions-map/?camera=true',
+        'City of Ottawa': 'https://traffic.ottawa.ca/en/traffic-map-data-lists-and-resources/traffic-camera-locations',
+        'NSW Live Traffic': 'https://www.livetraffic.com/traffic-cameras',
         'YouTube Live': 'https://www.youtube.com/',
         'Windy Webcam': 'https://www.windy.com/webcams/',
       };
@@ -775,6 +791,11 @@ Be factual, concise, and intelligence-focused. Use current 2024-2025 data.`,
         feedUrl: lc.feed_url,
         streamUrl: lc.stream_url || "",
         streamType: lc.stream_type || "",
+        periodicImageUrl: lc.periodic_image_url || "",
+        refreshIntervalMs: lc.refresh_interval_ms || 0,
+        referenceOnly: Boolean(lc.reference_only),
+        sourceContext: lc.source_context || "",
+        catalogRegion: lc.catalog_region || "",
         videoUrl: "",
         type: lc.stream_type === 'iframe' ? 'stream' : 'image',
         active: true,
@@ -788,7 +809,7 @@ Be factual, concise, and intelligence-focused. Use current 2024-2025 data.`,
       // Classify each camera as LIVE (iframe/stream) or PERIODIC (image refresh)
       const classified = allCameras.map((cam: any) => ({
         ...cam,
-        feedMode: (cam.streamUrl && cam.streamType === 'iframe') || cam.type === 'stream' ? 'live' : 'periodic',
+        feedMode: cam.referenceOnly ? 'reference' : ((cam.streamUrl && cam.streamType === 'iframe') || cam.type === 'stream' ? 'live' : 'periodic'),
       }));
 
       let cameras = classified;
@@ -805,7 +826,8 @@ Be factual, concise, and intelligence-focused. Use current 2024-2025 data.`,
       const countries = Array.from(new Set(cameras.map((c: any) => c.countryName || c.country))).filter(Boolean).sort();
       const liveCount = cameras.filter((c: any) => c.feedMode === 'live').length;
       const periodicCount = cameras.filter((c: any) => c.feedMode === 'periodic').length;
-      return { cameras, total: cameras.length, liveCount, periodicCount, countries, sources: countries.map(c => `${c} Traffic`) };
+      const referenceCount = cameras.filter((c: any) => c.feedMode === 'reference').length;
+      return { cameras, total: cameras.length, liveCount, periodicCount, referenceCount, countries, sources: countries.map(c => `${c} Traffic`) };
     }),
 
   // ─── Seismic ───────────────────────────────────────────────────────────────

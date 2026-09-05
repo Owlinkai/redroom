@@ -8,6 +8,7 @@ import { UpgradeButton } from "@/components/UpgradeButton";
 import { trpc } from "../lib/trpc";
 import { useLiveStream } from "../hooks/useLiveStream";
 import { ThemeSelector } from "@/components/ThemeSelector";
+import { getCameraPresentation } from "../lib/cameraPresentation";
 import {
   Plane, Ship, Camera, Activity, Flame, Cloud, Zap,
   Eye, EyeOff, Sun, Moon, X, ExternalLink,
@@ -536,6 +537,7 @@ export default function SigintPage() {
     cameras: cctvQuery.data?.total || 0,
     camerasLive: cctvQuery.data?.liveCount || 0,
     camerasPeriodic: cctvQuery.data?.periodicCount || 0,
+    camerasReferences: cctvQuery.data?.referenceCount || 0,
     quakes: seismicQuery.data?.total || 0,
     fires: fireQuery.data?.total || 0,
     events: weatherQuery.data?.total || 0,
@@ -3284,6 +3286,7 @@ function PinnedCameraMiniPlayer({ camera, initialPos, onUnpin, onExpand }: { cam
   const frameRef = useRef(0);
   const isMjpeg = camera.streamType === 'mjpeg' || camera.feedMode === 'live';
   const isIframe = camera.streamType === 'iframe';
+  const { imageFeedUrl, isExternalReference, isProviderPhotogram, periodicImageUrl, refreshIntervalMs, sourceLink } = getCameraPresentation(camera);
 
   // Drag-to-reposition state
   const [pos, setPos] = useState(initialPos);
@@ -3355,10 +3358,12 @@ function PinnedCameraMiniPlayer({ camera, initialPos, onUnpin, onExpand }: { cam
   }, []);
 
   useEffect(() => {
-    if (isIframe) return;
+    if (isIframe || isExternalReference || !imageFeedUrl) return;
     const loadFrame = () => {
       const start = Date.now();
-      const url = isMjpeg
+      const url = isProviderPhotogram
+        ? `${imageFeedUrl}${imageFeedUrl.includes('?') ? '&' : '?'}_t=${Date.now()}`
+        : isMjpeg
         ? `/api/mjpeg-frame?url=${encodeURIComponent(camera.streamUrl || camera.feedUrl)}&t=${Date.now()}`
         : `/api/trpc/sigint.proxyCCTVImage?input=${encodeURIComponent(JSON.stringify({ url: camera.feedUrl + (camera.feedUrl.includes('?') ? '&' : '?') + 'nocache=' + Date.now() }))}`;
       const img = new window.Image();
@@ -3374,9 +3379,9 @@ function PinnedCameraMiniPlayer({ camera, initialPos, onUnpin, onExpand }: { cam
       img.src = url;
     };
     loadFrame();
-    const interval = setInterval(loadFrame, isMjpeg ? 2000 : REFRESH_MS);
+    const interval = setInterval(loadFrame, isMjpeg ? 2000 : refreshIntervalMs);
     return () => clearInterval(interval);
-  }, [camera.feedUrl, camera.streamUrl, isMjpeg, isIframe]);
+  }, [camera.feedUrl, camera.streamUrl, imageFeedUrl, isMjpeg, isIframe, isExternalReference, isProviderPhotogram, refreshIntervalMs]);
 
   return (
     <div
@@ -3413,7 +3418,14 @@ function PinnedCameraMiniPlayer({ camera, initialPos, onUnpin, onExpand }: { cam
       </div>
       {/* Feed */}
       <div className="relative bg-black" style={{ aspectRatio: '16/9' }}>
-        {isIframe ? (
+        {isExternalReference ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center bg-gradient-to-br from-sky-950 via-slate-950 to-black">
+            <div className="w-8 h-8 rounded-full border border-sky-400/50 bg-sky-400/10 flex items-center justify-center mb-2"><Camera size={15} className="text-sky-300" /></div>
+            <div className="text-[8px] font-mono font-bold tracking-[0.16em] text-sky-200">EXTERNAL LIVE REFERENCE</div>
+            <div className="text-[7px] font-mono text-slate-400 mt-1 line-clamp-2">{camera.sourceContext || 'Live video remains hosted by the source provider.'}</div>
+            {sourceLink && <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 rounded border border-sky-400/50 bg-sky-400/10 px-2 py-1 text-[7px] font-mono font-bold text-sky-100 hover:bg-sky-400/20"><ExternalLink size={8} /> OPEN SOURCE</a>}
+          </div>
+        ) : isIframe ? (
           <iframe src={camera.streamUrl || camera.feedUrl} className="absolute inset-0 w-full h-full" allow="autoplay" />
         ) : (
           <>
@@ -3423,10 +3435,11 @@ function PinnedCameraMiniPlayer({ camera, initialPos, onUnpin, onExpand }: { cam
         )}
         {/* Quality overlay */}
         <div className="absolute bottom-0 left-0 right-0 px-1.5 py-0.5 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-          <span className="text-[7px] font-mono text-emerald-400">{fps} FPS</span>
+          <span className="text-[7px] font-mono text-emerald-400">{isProviderPhotogram ? '5 MIN' : `${fps} FPS`}</span>
           <span className="text-[7px] font-mono text-cyan-400">{latency}ms</span>
         </div>
       </div>
+      {sourceLink && <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 border-t border-border/30 px-2 py-1.5 text-[8px] font-mono text-sky-300 hover:bg-sky-400/10 hover:text-sky-100"><ExternalLink size={9} /> OPEN LIVE SOURCE · {camera.source || 'PUBLIC REFERENCE'}</a>}
       {/* Resize handle on right edge */}
       <div
         onMouseDown={onResizeMouseDown}
@@ -3863,31 +3876,67 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
   const [bufferA, setBufferA] = useState<string | null>(null);
   const [bufferB, setBufferB] = useState<string | null>(null);
   const [activeBuffer, setActiveBuffer] = useState<'A' | 'B'>('A');
+  const activeBufferRef = useRef<'A' | 'B'>('A');
   const bufferReadyRef = useRef({ A: false, B: false });
 
   // Determine feed type: iframe stream, MJPEG, or refreshing image
   const isIframeStream = !!(camera.streamUrl && camera.streamType === 'iframe');
   const isMjpeg = !isIframeStream && (camera.type === "stream" || /mjpg|mjpeg|video\.mjpg/i.test(camera.feedUrl || ""));
   const isLiveFeed = isIframeStream || isMjpeg;
-  const feedMode = camera.feedMode || (isLiveFeed ? 'live' : 'periodic');
+  const { imageFeedUrl, isExternalReference, isProviderPhotogram, periodicImageUrl, refreshIntervalMs, sourceLink } = getCameraPresentation(camera);
+  const feedMode = isExternalReference ? 'reference' : (camera.feedMode || (isLiveFeed ? 'live' : 'periodic'));
 
   // Refresh interval: MJPEG live = 2s, periodic images = 5s
   const MJPEG_REFRESH = 2000;
   const PERIODIC_REFRESH = 5000;
-  const REFRESH_INTERVAL = isMjpeg ? MJPEG_REFRESH : PERIODIC_REFRESH;
+  const REFRESH_INTERVAL = isMjpeg
+    ? MJPEG_REFRESH
+    : isProviderPhotogram
+      ? refreshIntervalMs
+      : PERIODIC_REFRESH;
   const [fetchTick, setFetchTick] = useState(0);
   useEffect(() => {
     // iframe streams don't need refresh; MJPEG and periodic both use polling
-    if (isIframeStream || !camera.feedUrl) return;
+    if (isIframeStream || isExternalReference || !imageFeedUrl) return;
     const interval = setInterval(() => setFetchTick(t => t + 1), REFRESH_INTERVAL);
     return () => clearInterval(interval);
-  }, [camera.feedUrl, isIframeStream, REFRESH_INTERVAL]);
+  }, [imageFeedUrl, isIframeStream, isExternalReference, REFRESH_INTERVAL]);
 
   // Proxy query for image-type cameras (periodic)
   const proxyQuery = trpc.sigint.proxyCCTVImage.useQuery(
     { url: camera.feedUrl, _t: fetchTick, lat: camera.latitude || camera.lat, lon: camera.longitude || camera.lon, name: camera.name },
-    { enabled: !!camera.feedUrl && !isIframeStream && !isMjpeg, staleTime: 0, gcTime: 0 }
+    { enabled: !!camera.feedUrl && !isProviderPhotogram && !isExternalReference && !isIframeStream && !isMjpeg, staleTime: 0, gcTime: 0 }
   );
+
+  // Provider-issued Skyline photograms are loaded directly, never via the CCTV proxy.
+  useEffect(() => {
+    if (!isProviderPhotogram || !periodicImageUrl) return;
+    let disposed = false;
+    const newSrc = `${periodicImageUrl}${periodicImageUrl.includes('?') ? '&' : '?'}_t=${fetchTick}`;
+    const image = new window.Image();
+    image.onload = () => {
+      if (disposed) return;
+      setLoading(false);
+      setError(false);
+      setFrameCount(prev => prev + 1);
+      setLastRefreshTime(new Date());
+      if (activeBufferRef.current === 'A') {
+        setBufferB(newSrc);
+        bufferReadyRef.current.B = false;
+      } else {
+        setBufferA(newSrc);
+        bufferReadyRef.current.A = false;
+      }
+    };
+    image.onerror = () => {
+      if (!disposed) {
+        setLoading(false);
+        setError(true);
+      }
+    };
+    image.src = newSrc;
+    return () => { disposed = true; };
+  }, [fetchTick, isProviderPhotogram, periodicImageUrl]);
 
   // MJPEG proxy: use the /api/mjpeg-frame endpoint to get individual frames
   const [mjpegFrameUrl, setMjpegFrameUrl] = useState<string | null>(null);
@@ -3908,7 +3957,8 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
 
   // DOUBLE-BUFFER: When new data arrives, load it into the inactive buffer
   useEffect(() => {
-    if (isIframeStream) { setLoading(false); setError(false); return; }
+    if (isIframeStream || isExternalReference) { setLoading(false); setError(false); return; }
+    if (isProviderPhotogram) return;
     // For MJPEG cameras, use the mjpegFrameUrl
     if (isMjpeg && mjpegFrameUrl) {
       const newSrc = mjpegFrameUrl;
@@ -3953,11 +4003,12 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
       setLoading(false);
       setError(true);
     }
-  }, [proxyQuery.data, proxyQuery.isError, proxyQuery.dataUpdatedAt, isIframeStream, isMjpeg, mjpegFrameUrl, currentHash, lastHashRef, activeBuffer]);
+  }, [proxyQuery.data, proxyQuery.isError, proxyQuery.dataUpdatedAt, isIframeStream, isExternalReference, isProviderPhotogram, isMjpeg, mjpegFrameUrl, currentHash, lastHashRef, activeBuffer]);
 
   // When inactive buffer image loads, swap it to front
   const handleBufferLoad = useCallback((buffer: 'A' | 'B') => {
     bufferReadyRef.current[buffer] = true;
+    activeBufferRef.current = buffer;
     setActiveBuffer(buffer);
   }, []);
 
@@ -4001,7 +4052,7 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
       {/* Camera Header with Feed Mode Badge */}
       <div className="bg-muted/30 rounded-lg p-3 border border-border/30">
         <div className="flex items-center justify-between mb-1">
-          <div className="text-[13px] font-mono font-bold" style={{ color: feedMode === 'live' ? '#22c55e' : '#a855f7' }}>{camera.name}</div>
+          <div className="text-[13px] font-mono font-bold" style={{ color: feedMode === 'live' ? '#22c55e' : feedMode === 'reference' ? '#f59e0b' : '#a855f7' }}>{camera.name}</div>
           <div className="flex items-center gap-1.5">
             {onPinCamera && (
               <button
@@ -4013,22 +4064,22 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
               </button>
             )}
             <div className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold uppercase tracking-wider ${
-              feedMode === 'live' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
+              feedMode === 'live' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : feedMode === 'reference' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
             }`}>
-              {feedMode === 'live' ? '● LIVE STREAM' : '◎ PERIODIC'}
+              {feedMode === 'live' ? '● LIVE STREAM' : feedMode === 'reference' ? '↗ SOURCE LINK' : '◎ PERIODIC'}
             </div>
           </div>
         </div>
         <div className="text-[10px] text-muted-foreground font-mono">{camera.city}, {camera.countryName || camera.country}</div>
         <div className="text-[9px] text-muted-foreground/70 font-mono mt-0.5">
-          {isIframeStream ? "EMBEDDED VIDEO — REAL-TIME" : isMjpeg ? "MJPEG STREAM — REAL-TIME" : `IMAGE FEED — REFRESHES EVERY ${REFRESH_INTERVAL / 1000}s (SEAMLESS)`}
+          {isIframeStream ? "EMBEDDED VIDEO — REAL-TIME" : isMjpeg ? "MJPEG STREAM — REAL-TIME" : isProviderPhotogram ? `PROVIDER PHOTOGRAM — REFRESHES EVERY ${REFRESH_INTERVAL / 60000} MIN` : isExternalReference ? "LIVE SOURCE HOSTED EXTERNALLY" : `IMAGE FEED — REFRESHES EVERY ${REFRESH_INTERVAL / 1000}s (SEAMLESS)`}
         </div>
       </div>
 
       {/* Live Feed Viewer — DOUBLE BUFFER (no flicker) */}
       <div className="relative rounded-lg overflow-hidden border border-border/30 bg-black">
         <div className="aspect-video relative">
-          {loading && !isIframeStream && (
+          {loading && !isIframeStream && !isExternalReference && (
             <div className="absolute inset-0 flex items-center justify-center bg-black z-20">
               <div className="text-center">
                 <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
@@ -4046,6 +4097,13 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
               title={camera.name}
               onLoad={() => { setLoading(false); setError(false); }}
             />
+          )}
+          {isExternalReference && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center bg-gradient-to-br from-slate-950 via-slate-950 to-black">
+              <Camera size={24} className="text-amber-300 mb-2" />
+              <div className="text-[10px] font-mono text-amber-100 font-bold">LIVE SOURCE OPENS EXTERNALLY</div>
+              <div className="mt-1 text-[8px] font-mono text-slate-400">{camera.sourceContext || 'The provider page is the canonical live source.'}</div>
+            </div>
           )}
           {/* DOUBLE-BUFFER IMAGE FEED — Works for both MJPEG (proxied) and periodic cameras */}
           {!isIframeStream && !error && (
@@ -4078,15 +4136,15 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
               <div className="text-center">
                 <Camera size={24} className="text-muted-foreground mx-auto mb-1" />
                 <div className="text-[10px] font-mono text-muted-foreground">Initializing feed...</div>
-                <a href={camera.feedUrl || camera.streamUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] font-mono text-primary hover:underline flex items-center gap-1 justify-center mt-1">Open directly <ExternalLink size={8} /></a>
+                {sourceLink && <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="text-[9px] font-mono text-primary hover:underline flex items-center gap-1 justify-center mt-1">Open directly <ExternalLink size={8} /></a>}
               </div>
             </div>
           )}
           {/* Overlay HUD */}
           <div className="absolute top-1.5 left-1.5 flex items-center gap-1.5 z-30">
-            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${feedMode === 'live' ? 'bg-emerald-600/90' : 'bg-purple-600/90'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${feedMode === 'live' ? 'bg-white animate-pulse' : 'bg-purple-200'}`} />
-              <span className="text-[8px] font-bold font-mono text-white">{feedMode === 'live' ? 'LIVE' : 'PERIODIC'}</span>
+            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${feedMode === 'live' ? 'bg-emerald-600/90' : feedMode === 'reference' ? 'bg-amber-600/90' : 'bg-purple-600/90'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${feedMode === 'live' ? 'bg-white animate-pulse' : feedMode === 'reference' ? 'bg-amber-100' : 'bg-purple-200'}`} />
+              <span className="text-[8px] font-bold font-mono text-white">{feedMode === 'live' ? 'LIVE' : feedMode === 'reference' ? 'SOURCE' : 'PERIODIC'}</span>
             </div>
             {feedHealth && feedHealth !== 'dead' && (
               <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${
@@ -4103,7 +4161,7 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
           <div className="absolute bottom-1.5 left-1.5 right-12 flex items-center gap-1 flex-wrap z-30">
             <div className="bg-black/80 px-1.5 py-0.5 rounded flex items-center gap-1">
               <span className="text-[7px] font-mono text-cyan-400">FPS</span>
-              <span className="text-[8px] font-mono text-white font-bold">{isMjpeg ? Math.round(1000 / 2000) : Math.round(1000 / PERIODIC_REFRESH)}</span>
+              <span className="text-[8px] font-mono text-white font-bold">{isProviderPhotogram ? '5m' : isMjpeg ? Math.round(1000 / 2000) : Math.round(1000 / PERIODIC_REFRESH)}</span>
             </div>
             <div className="bg-black/80 px-1.5 py-0.5 rounded flex items-center gap-1">
               <span className="text-[7px] font-mono text-amber-400">LAT</span>
@@ -4121,9 +4179,9 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
               <span className="text-[7px] font-mono text-white/60">{lastRefreshTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
             </div>
           </div>
-          <button onClick={() => { if (isMjpeg) { setFetchTick(t => t + 1); } else { proxyQuery.refetch(); } }} className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-black/90 text-white p-1 rounded transition-colors z-30" title="Force refresh">
+          {!isExternalReference && !isProviderPhotogram && <button onClick={() => { if (isMjpeg) { setFetchTick(t => t + 1); } else { proxyQuery.refetch(); } }} className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-black/90 text-white p-1 rounded transition-colors z-30" title="Force refresh">
             <RotateCcw size={10} className={proxyQuery.isFetching ? 'animate-spin' : ''} />
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -4150,14 +4208,15 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
             )}
           </div>
         </div>
-        <DetailRow label="FEED MODE" value={isIframeStream ? '● LIVE — Real-time video stream' : isMjpeg ? `● LIVE — MJPEG proxied (${MJPEG_REFRESH/1000}s frames)` : `◎ PERIODIC — Refreshes every ${PERIODIC_REFRESH / 1000}s`} />
-        <DetailRow label="HEALTH" value={isMjpeg ? (error ? '○ DEAD — Cannot reach' : '● ACTIVE — MJPEG streaming') : feedHealth === 'active' ? '● ACTIVE — Feed updating' : feedHealth === 'stale' ? '◐ STALE — No change >10min' : feedHealth === 'dead' ? '○ DEAD — Cannot reach' : 'Analyzing...'} />
+        <DetailRow label="FEED MODE" value={isIframeStream ? '● LIVE — Real-time video stream' : isMjpeg ? `● LIVE — MJPEG proxied (${MJPEG_REFRESH/1000}s frames)` : isProviderPhotogram ? `◎ PERIODIC — Provider photogram (${REFRESH_INTERVAL / 60000} min)` : isExternalReference ? '↗ REFERENCE — Full live source opens externally' : `◎ PERIODIC — Refreshes every ${PERIODIC_REFRESH / 1000}s`} />
+        <DetailRow label="HEALTH" value={isProviderPhotogram ? (error ? '○ UNAVAILABLE — Open provider source' : '● ACTIVE — Provider refresh cadence') : isExternalReference ? '↗ EXTERNAL — Open provider source' : isMjpeg ? (error ? '○ DEAD — Cannot reach' : '● ACTIVE — MJPEG streaming') : feedHealth === 'active' ? '● ACTIVE — Feed updating' : feedHealth === 'stale' ? '◐ STALE — No change >10min' : feedHealth === 'dead' ? '○ DEAD — Cannot reach' : 'Analyzing...'} />
         <DetailRow label="CONTENT Δ" value={`${contentChangeCount} unique frames detected`} />
         {lastContentChange && <DetailRow label="LAST CHANGE" value={lastContentChange.toLocaleTimeString()} />}
         <DetailRow label="CITY" value={camera.city} />
         <DetailRow label="COUNTRY" value={camera.countryName || camera.country} />
         {camera.road && <DetailRow label="ROAD" value={camera.road} />}
         {camera.direction && <DetailRow label="DIRECTION" value={camera.direction} />}
+        {camera.sourceContext && <DetailRow label="INTEL CONTEXT" value={camera.sourceContext} />}
         <DetailRow label="LATITUDE" value={camera.lat?.toFixed(5)} />
         <DetailRow label="LONGITUDE" value={camera.lon?.toFixed(5)} />
       </div>
@@ -4215,7 +4274,7 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
         </div>
       )}
 
-      <a href={camera.streamUrl || camera.feedUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[10px] font-mono text-primary hover:text-primary/80"><ExternalLink size={10} /> Open feed source</a>
+      {sourceLink && <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[10px] font-mono text-primary hover:text-primary/80"><ExternalLink size={10} /> Open feed source</a>}
     </div>
   );
 }
