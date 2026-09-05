@@ -18,7 +18,7 @@ import {
   RefreshCw, Info, MapPin, RotateCcw,   Maximize2, Minimize2,
   Search, Filter, Pentagon, Crosshair, Bell, Bot,
   ScanLine, Workflow, Shield, Database, Satellite,
-  Target, Cpu, Network, Lock, Unlock,
+  Target, Cpu, Network, Lock, Unlock, Pin,
 } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -290,6 +290,8 @@ export default function SigintPage() {
   const [isResizingPanel, setIsResizingPanel] = useState(false);
   const [expandedCamera, setExpandedCamera] = useState(false);
   const [showCctvDisclaimer, setShowCctvDisclaimer] = useState(false);
+  const [hoveredCameraPreview, setHoveredCameraPreview] = useState<{ camera: any; x: number; y: number } | null>(null);
+  const cameraHoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // SVM tracked items count (reads from localStorage, updates reactively)
   const [svmCount, setSvmCount] = useState<number>(() => {
@@ -1511,6 +1513,8 @@ export default function SigintPage() {
     if (!markersRef.current.cctv || !mapRef.current) return;
     const group = markersRef.current.cctv as L.LayerGroup;
     group.clearLayers();
+    if (cameraHoverTimerRef.current) clearTimeout(cameraHoverTimerRef.current);
+    setHoveredCameraPreview(null);
     if (!activeLayers.has("cctv") || !cctvQuery.data?.cameras) return;
 
     const cameras = cctvQuery.data.cameras;
@@ -1646,6 +1650,18 @@ export default function SigintPage() {
       const m = L.marker([cam.lat, cam.lon], { icon, pane: 'cctvPane' });
       m.bindTooltip(`${cam.name || cam.id}${cam.city ? ' · ' + cam.city : ''}${cam.country ? ', ' + cam.country : ''}${isLive ? ' 🟢 LIVE' : ''}`, {
         direction: 'top', offset: [0, -8], className: 'sigint-tooltip', permanent: false, opacity: 0.95,
+      });
+      m.on('mouseover', (event: L.LeafletMouseEvent) => {
+        if (cameraHoverTimerRef.current) clearTimeout(cameraHoverTimerRef.current);
+        const point = map.latLngToContainerPoint(event.latlng);
+        const mapSize = map.getSize();
+        const x = Math.max(12, Math.min(point.x + 18, mapSize.x - 296));
+        const y = Math.max(12, Math.min(point.y - 24, mapSize.y - 194));
+        cameraHoverTimerRef.current = setTimeout(() => setHoveredCameraPreview({ camera: cam, x, y }), 180);
+      });
+      m.on('mouseout', () => {
+        if (cameraHoverTimerRef.current) clearTimeout(cameraHoverTimerRef.current);
+        setHoveredCameraPreview(prev => prev?.camera?.id === cam.id ? null : prev);
       });
       m.on("click", () => selectItem("camera", cam));
       group.addLayer(m);
@@ -2818,6 +2834,10 @@ export default function SigintPage() {
             style={{ opacity: viewMode === "globe" ? 1 : 0, pointerEvents: viewMode === "globe" ? "auto" : "none", zIndex: viewMode === "globe" ? 2 : 1 }}
           />
 
+          {viewMode === "map" && hoveredCameraPreview && (
+            <CameraHoverPreview camera={hoveredCameraPreview.camera} position={hoveredCameraPreview} />
+          )}
+
           {/* Country Search Overlay */}
           {showCountrySearch && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] w-80">
@@ -3452,6 +3472,94 @@ function PinnedCameraMiniPlayer({ camera, initialPos, onUnpin, onExpand }: { cam
   );
 }
 
+// ─── Map Hover Camera Preview ───────────────────────────────────────────────
+function CameraHoverPreview({ camera, position }: { camera: any; position: { x: number; y: number } }) {
+  const { imageFeedUrl, isExternalReference, isProviderPhotogram, periodicImageUrl, refreshIntervalMs } = getCameraPresentation(camera);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [previewState, setPreviewState] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const isIframe = camera.streamType === 'iframe';
+  const isMjpeg = !isIframe && (camera.streamType === 'mjpeg' || camera.feedMode === 'live' || /mjpg|mjpeg|video\.mjpg/i.test(camera.feedUrl || ''));
+  const modeLabel = isExternalReference ? 'EXTERNAL REFERENCE' : isIframe ? 'LIVE STREAM' : isProviderPhotogram ? 'PROVIDER SNAPSHOT' : isMjpeg ? 'LIVE FRAME' : 'PERIODIC IMAGE';
+  const accent = isExternalReference ? '#f59e0b' : isIframe || isMjpeg ? '#22c55e' : '#a855f7';
+  const location = [camera.city, camera.countryName || camera.country].filter(Boolean).join(', ') || 'Location metadata unavailable';
+
+  useEffect(() => {
+    if (isExternalReference || isIframe || !imageFeedUrl) {
+      setPreviewSrc(null);
+      setPreviewState(isExternalReference || isIframe ? 'ready' : 'unavailable');
+      return;
+    }
+    let disposed = false;
+    const loadPreview = () => {
+      setPreviewState(current => current === 'ready' ? current : 'loading');
+      const cacheToken = Date.now();
+      const source = isProviderPhotogram
+        ? `${periodicImageUrl}${periodicImageUrl.includes('?') ? '&' : '?'}_t=${cacheToken}`
+        : isMjpeg
+          ? `/api/mjpeg-frame?url=${encodeURIComponent(camera.streamUrl || camera.feedUrl)}&_t=${cacheToken}`
+          : `/api/trpc/sigint.proxyCCTVImage?input=${encodeURIComponent(JSON.stringify({ url: `${camera.feedUrl}${camera.feedUrl.includes('?') ? '&' : '?'}nocache=${cacheToken}` }))}`;
+      const image = new window.Image();
+      image.onload = () => {
+        if (!disposed) {
+          setPreviewSrc(source);
+          setPreviewState('ready');
+        }
+      };
+      image.onerror = () => { if (!disposed) setPreviewState('unavailable'); };
+      image.src = source;
+    };
+    loadPreview();
+    const cadence = isMjpeg ? 5000 : refreshIntervalMs;
+    const interval = window.setInterval(loadPreview, cadence);
+    return () => { disposed = true; window.clearInterval(interval); };
+  }, [camera.feedUrl, camera.streamUrl, imageFeedUrl, isExternalReference, isIframe, isMjpeg, isProviderPhotogram, periodicImageUrl, refreshIntervalMs]);
+
+  return (
+    <div
+      className="absolute w-[280px] overflow-hidden rounded-xl border border-border/60 bg-card/95 shadow-2xl backdrop-blur-xl pointer-events-none"
+      style={{ left: position.x, top: position.y, zIndex: 850, boxShadow: `0 18px 48px ${accent}26, 0 0 0 1px ${accent}33` }}
+      aria-hidden="true"
+    >
+      <div className="flex items-center justify-between border-b border-border/30 px-2.5 py-1.5" style={{ background: `linear-gradient(90deg, ${accent}1c, transparent)` }}>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accent, boxShadow: `0 0 8px ${accent}` }} />
+          <span className="truncate text-[8px] font-mono font-bold uppercase tracking-[0.14em] text-foreground/90">{modeLabel}</span>
+        </div>
+        <span className="text-[7px] font-mono text-muted-foreground">HOVER PREVIEW</span>
+      </div>
+      <div className="relative aspect-video bg-black">
+        {isExternalReference ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-black px-4 text-center">
+            <ExternalLink size={16} style={{ color: accent }} />
+            <span className="mt-1.5 text-[8px] font-mono font-bold tracking-[0.12em] text-slate-100">SOURCE HOSTED EXTERNALLY</span>
+            <span className="mt-1 text-[7px] font-mono text-slate-400">Select for source and context</span>
+          </div>
+        ) : isIframe ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-emerald-950/80 via-slate-950 to-black px-4 text-center">
+            <Camera size={17} className="text-emerald-300" />
+            <span className="mt-1.5 text-[8px] font-mono font-bold tracking-[0.12em] text-emerald-100">LIVE PLAYER READY</span>
+            <span className="mt-1 text-[7px] font-mono text-slate-400">Select to open the full stream</span>
+          </div>
+        ) : previewSrc ? (
+          <img src={previewSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-950 to-black">
+            {previewState === 'unavailable' ? <span className="text-[8px] font-mono text-muted-foreground">Preview unavailable</span> : <div className="flex items-center gap-2 text-[8px] font-mono text-muted-foreground"><RefreshCw size={12} className="animate-spin text-purple-300" /> Acquiring preview</div>}
+          </div>
+        )}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-2.5 pb-2 pt-7">
+          <div className="truncate text-[10px] font-mono font-bold text-white">{camera.name || 'Unnamed camera'}</div>
+          <div className="mt-0.5 flex items-center gap-1 text-[7px] font-mono text-white/70"><MapPin size={8} /><span className="truncate">{location}</span></div>
+        </div>
+      </div>
+      <div className="flex items-center justify-between px-2.5 py-1.5">
+        <span className="max-w-[175px] truncate text-[8px] font-mono text-muted-foreground">{camera.source || 'Public camera source'}</span>
+        <span className="text-[8px] font-mono font-bold uppercase tracking-[0.1em]" style={{ color: accent }}>SELECT FOR INTEL</span>
+      </div>
+    </div>
+  );
+}
+
 // ─── Detail Panel Components ────────────────────────────────────────────────
 
 function AircraftDetail({ data, onRouteEnriched }: { data: any; onRouteEnriched?: (route: any) => void }) {
@@ -3891,9 +3999,7 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
   const PERIODIC_REFRESH = 5000;
   const REFRESH_INTERVAL = isMjpeg
     ? MJPEG_REFRESH
-    : isProviderPhotogram
-      ? refreshIntervalMs
-      : PERIODIC_REFRESH;
+    : refreshIntervalMs;
   const [fetchTick, setFetchTick] = useState(0);
   useEffect(() => {
     // iframe streams don't need refresh; MJPEG and periodic both use polling
@@ -4047,37 +4153,44 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
     return () => { highlightLayer.clearLayers(); };
   }, [nearestCameras, camera, highlightLayer, map]);
 
+  const feedAccent = feedMode === 'live' ? '#22c55e' : feedMode === 'reference' ? '#f59e0b' : '#a855f7';
+  const feedStatusLabel = feedMode === 'live' ? 'LIVE MONITOR' : feedMode === 'reference' ? 'SOURCE REFERENCE' : 'PERIODIC MONITOR';
+  const cadenceLabel = isIframeStream ? 'Real-time video' : isMjpeg ? '2 second frame cadence' : isProviderPhotogram ? `${Math.round(REFRESH_INTERVAL / 60000)} minute provider cadence` : `Refreshes every ${Math.max(1, Math.round(REFRESH_INTERVAL / 1000))} seconds`;
+  const locationLabel = [camera.city, camera.countryName || camera.country].filter(Boolean).join(', ') || 'Location metadata unavailable';
+  const healthLabel = isExternalReference ? 'External source' : error ? 'Unavailable' : feedHealth === 'stale' ? 'Stale signal' : feedHealth === 'dead' ? 'Signal interrupted' : 'Monitoring';
+
   return (
     <div className="space-y-3">
-      {/* Camera Header with Feed Mode Badge */}
-      <div className="bg-muted/30 rounded-lg p-3 border border-border/30">
-        <div className="flex items-center justify-between mb-1">
-          <div className="text-[13px] font-mono font-bold" style={{ color: feedMode === 'live' ? '#22c55e' : feedMode === 'reference' ? '#f59e0b' : '#a855f7' }}>{camera.name}</div>
+      {/* Camera operation header */}
+      <section className="overflow-hidden rounded-xl border border-border/50 bg-card shadow-lg">
+        <div className="flex items-center justify-between border-b border-border/30 px-3 py-1.5" style={{ background: `linear-gradient(90deg, ${feedAccent}22, transparent)` }}>
           <div className="flex items-center gap-1.5">
-            {onPinCamera && (
-              <button
-                onClick={() => onPinCamera(camera)}
-                className="px-2 py-0.5 rounded text-[8px] font-mono font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 transition-colors"
-                title="Pin to floating mini-player"
-              >
-                📌 PIN
-              </button>
-            )}
-            <div className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold uppercase tracking-wider ${
-              feedMode === 'live' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : feedMode === 'reference' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
-            }`}>
-              {feedMode === 'live' ? '● LIVE STREAM' : feedMode === 'reference' ? '↗ SOURCE LINK' : '◎ PERIODIC'}
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: feedAccent, boxShadow: `0 0 8px ${feedAccent}` }} />
+            <span className="text-[8px] font-mono font-bold uppercase tracking-[0.16em]" style={{ color: feedAccent }}>{feedStatusLabel}</span>
+          </div>
+          <span className="text-[7px] font-mono uppercase tracking-[0.12em] text-muted-foreground">SIGINT CAMERA</span>
+        </div>
+        <div className="p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="truncate text-[14px] font-mono font-bold text-foreground">{camera.name || 'Unnamed camera'}</h2>
+              <div className="mt-1 flex items-center gap-1 text-[9px] font-mono text-muted-foreground"><MapPin size={10} style={{ color: feedAccent }} /><span className="truncate">{locationLabel}</span></div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              {sourceLink && <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md border border-border/50 bg-muted/30 px-2 py-1 text-[8px] font-mono font-bold text-foreground/80 transition-colors hover:border-primary/60 hover:bg-primary/10 hover:text-primary" title="Open official camera source"><ExternalLink size={10} /> SOURCE</a>}
+              {onPinCamera && <button onClick={() => onPinCamera(camera)} className="inline-flex items-center gap-1 rounded-md border border-amber-500/35 bg-amber-500/10 px-2 py-1 text-[8px] font-mono font-bold text-amber-400 transition-colors hover:bg-amber-500/20" title="Pin to floating mini-player"><Pin size={10} /> PIN</button>}
             </div>
           </div>
+          <div className="mt-3 grid grid-cols-3 gap-1.5">
+            <div className="rounded-md border border-border/30 bg-muted/20 px-2 py-1.5"><div className="text-[7px] font-mono uppercase tracking-wider text-muted-foreground">Signal</div><div className="mt-0.5 truncate text-[8px] font-mono font-bold" style={{ color: feedAccent }}>{healthLabel}</div></div>
+            <div className="rounded-md border border-border/30 bg-muted/20 px-2 py-1.5"><div className="text-[7px] font-mono uppercase tracking-wider text-muted-foreground">Cadence</div><div className="mt-0.5 truncate text-[8px] font-mono font-bold text-foreground/80">{isIframeStream ? 'Live' : isMjpeg ? '2 sec' : isProviderPhotogram ? `${Math.round(REFRESH_INTERVAL / 60000)} min` : `${Math.max(1, Math.round(REFRESH_INTERVAL / 1000))} sec`}</div></div>
+            <div className="rounded-md border border-border/30 bg-muted/20 px-2 py-1.5"><div className="text-[7px] font-mono uppercase tracking-wider text-muted-foreground">Frames</div><div className="mt-0.5 text-[8px] font-mono font-bold text-foreground/80">{frameCount.toLocaleString()}</div></div>
+          </div>
         </div>
-        <div className="text-[10px] text-muted-foreground font-mono">{camera.city}, {camera.countryName || camera.country}</div>
-        <div className="text-[9px] text-muted-foreground/70 font-mono mt-0.5">
-          {isIframeStream ? "EMBEDDED VIDEO — REAL-TIME" : isMjpeg ? "MJPEG STREAM — REAL-TIME" : isProviderPhotogram ? `PROVIDER PHOTOGRAM — REFRESHES EVERY ${REFRESH_INTERVAL / 60000} MIN` : isExternalReference ? "LIVE SOURCE HOSTED EXTERNALLY" : `IMAGE FEED — REFRESHES EVERY ${REFRESH_INTERVAL / 1000}s (SEAMLESS)`}
-        </div>
-      </div>
+      </section>
 
       {/* Live Feed Viewer — DOUBLE BUFFER (no flicker) */}
-      <div className="relative rounded-lg overflow-hidden border border-border/30 bg-black">
+      <div className="relative overflow-hidden rounded-xl border border-border/50 bg-black shadow-lg">
         <div className="aspect-video relative">
           {loading && !isIframeStream && !isExternalReference && (
             <div className="absolute inset-0 flex items-center justify-center bg-black z-20">
@@ -4160,8 +4273,8 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
           {/* Bottom HUD — Quality Indicators */}
           <div className="absolute bottom-1.5 left-1.5 right-12 flex items-center gap-1 flex-wrap z-30">
             <div className="bg-black/80 px-1.5 py-0.5 rounded flex items-center gap-1">
-              <span className="text-[7px] font-mono text-cyan-400">FPS</span>
-              <span className="text-[8px] font-mono text-white font-bold">{isProviderPhotogram ? '5m' : isMjpeg ? Math.round(1000 / 2000) : Math.round(1000 / PERIODIC_REFRESH)}</span>
+              <span className="text-[7px] font-mono text-cyan-400">{isMjpeg ? 'FRAME' : 'CADENCE'}</span>
+              <span className="text-[8px] font-mono text-white font-bold">{isMjpeg ? '2s' : isProviderPhotogram ? `${Math.round(REFRESH_INTERVAL / 60000)}m` : `${Math.max(1, Math.round(REFRESH_INTERVAL / 1000))}s`}</span>
             </div>
             <div className="bg-black/80 px-1.5 py-0.5 rounded flex items-center gap-1">
               <span className="text-[7px] font-mono text-amber-400">LAT</span>
@@ -4185,40 +4298,32 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
         </div>
       </div>
 
-      {/* Camera Details */}
+      {/* Operational context and attribution */}
       <div className="space-y-2">
-        {/* Enhanced SOURCE row with reference link */}
-        <div className="flex justify-between items-start gap-2 py-1 border-b border-border/20">
-          <span className="text-[9px] font-mono text-muted-foreground shrink-0">SOURCE</span>
-          <div className="flex flex-col items-end gap-0.5">
-            <span className="text-[10px] font-mono text-right">{camera.source || "—"}</span>
-            {camera.sourceRef ? (
-              <a
-                href={camera.sourceRef}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-0.5 text-[8px] font-mono text-purple-400/80 hover:text-purple-300 transition-colors"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <ExternalLink size={7} />
-                <span className="max-w-[160px] truncate">{camera.sourceRef.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
-              </a>
-            ) : (
-              <span className="text-[8px] font-mono text-muted-foreground/40">Open-source / Public API</span>
-            )}
+        <section className="rounded-xl border border-border/40 bg-muted/15 p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[8px] font-mono font-bold uppercase tracking-[0.14em] text-muted-foreground">Source attribution</span>
+            <span className="rounded px-1.5 py-0.5 text-[7px] font-mono font-bold uppercase" style={{ color: feedAccent, backgroundColor: `${feedAccent}18` }}>{camera.catalogRegion || 'Public source'}</span>
           </div>
+          <div className="mt-1.5 text-[10px] font-mono font-bold text-foreground/90">{camera.source || 'Public camera source'}</div>
+          {sourceLink ? <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex max-w-full items-center gap-1 text-[8px] font-mono text-primary transition-colors hover:text-primary/80"><ExternalLink size={9} /><span className="truncate">Open official viewer</span></a> : <div className="mt-1 text-[8px] font-mono text-muted-foreground/60">Provider source link unavailable</div>}
+        </section>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg border border-border/35 bg-card px-2.5 py-2"><div className="text-[7px] font-mono uppercase tracking-wider text-muted-foreground">Feed health</div><div className="mt-1 text-[9px] font-mono font-bold" style={{ color: error || feedHealth === 'dead' ? '#f87171' : feedHealth === 'stale' ? '#fbbf24' : feedAccent }}>{healthLabel}</div></div>
+          <div className="rounded-lg border border-border/35 bg-card px-2.5 py-2"><div className="text-[7px] font-mono uppercase tracking-wider text-muted-foreground">Refresh plan</div><div className="mt-1 truncate text-[9px] font-mono font-bold text-foreground/85">{cadenceLabel}</div></div>
+          <div className="rounded-lg border border-border/35 bg-card px-2.5 py-2"><div className="text-[7px] font-mono uppercase tracking-wider text-muted-foreground">Frame change</div><div className="mt-1 text-[9px] font-mono font-bold text-foreground/85">{contentChangeCount} detected</div></div>
+          <div className="rounded-lg border border-border/35 bg-card px-2.5 py-2"><div className="text-[7px] font-mono uppercase tracking-wider text-muted-foreground">Last capture</div><div className="mt-1 text-[9px] font-mono font-bold text-foreground/85">{lastRefreshTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div></div>
         </div>
-        <DetailRow label="FEED MODE" value={isIframeStream ? '● LIVE — Real-time video stream' : isMjpeg ? `● LIVE — MJPEG proxied (${MJPEG_REFRESH/1000}s frames)` : isProviderPhotogram ? `◎ PERIODIC — Provider photogram (${REFRESH_INTERVAL / 60000} min)` : isExternalReference ? '↗ REFERENCE — Full live source opens externally' : `◎ PERIODIC — Refreshes every ${PERIODIC_REFRESH / 1000}s`} />
-        <DetailRow label="HEALTH" value={isProviderPhotogram ? (error ? '○ UNAVAILABLE — Open provider source' : '● ACTIVE — Provider refresh cadence') : isExternalReference ? '↗ EXTERNAL — Open provider source' : isMjpeg ? (error ? '○ DEAD — Cannot reach' : '● ACTIVE — MJPEG streaming') : feedHealth === 'active' ? '● ACTIVE — Feed updating' : feedHealth === 'stale' ? '◐ STALE — No change >10min' : feedHealth === 'dead' ? '○ DEAD — Cannot reach' : 'Analyzing...'} />
-        <DetailRow label="CONTENT Δ" value={`${contentChangeCount} unique frames detected`} />
-        {lastContentChange && <DetailRow label="LAST CHANGE" value={lastContentChange.toLocaleTimeString()} />}
-        <DetailRow label="CITY" value={camera.city} />
-        <DetailRow label="COUNTRY" value={camera.countryName || camera.country} />
-        {camera.road && <DetailRow label="ROAD" value={camera.road} />}
-        {camera.direction && <DetailRow label="DIRECTION" value={camera.direction} />}
-        {camera.sourceContext && <DetailRow label="INTEL CONTEXT" value={camera.sourceContext} />}
-        <DetailRow label="LATITUDE" value={camera.lat?.toFixed(5)} />
-        <DetailRow label="LONGITUDE" value={camera.lon?.toFixed(5)} />
+        <section className="rounded-xl border border-border/40 bg-card p-2.5">
+          <div className="text-[8px] font-mono font-bold uppercase tracking-[0.14em] text-muted-foreground">Operational context</div>
+          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[9px] font-mono">
+            <div><span className="text-muted-foreground">LOCATION</span><div className="mt-0.5 truncate text-foreground/85">{locationLabel}</div></div>
+            <div><span className="text-muted-foreground">COORDINATES</span><div className="mt-0.5 text-foreground/85">{camera.lat?.toFixed(4) || '—'}, {camera.lon?.toFixed(4) || '—'}</div></div>
+            {camera.road && <div><span className="text-muted-foreground">ROAD</span><div className="mt-0.5 truncate text-foreground/85">{camera.road}</div></div>}
+            {camera.direction && <div><span className="text-muted-foreground">DIRECTION</span><div className="mt-0.5 truncate text-foreground/85">{camera.direction}</div></div>}
+          </div>
+          {camera.sourceContext && <div className="mt-2 border-t border-border/30 pt-2 text-[8px] font-mono leading-relaxed text-muted-foreground">{camera.sourceContext}</div>}
+        </section>
       </div>
 
       {/* Stale Camera Warning + Auto-suggest */}
@@ -4273,8 +4378,6 @@ function CameraFeedPanel({ camera, allCameras, onSelectCamera, highlightLayer, m
           </div>
         </div>
       )}
-
-      {sourceLink && <a href={sourceLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[10px] font-mono text-primary hover:text-primary/80"><ExternalLink size={10} /> Open feed source</a>}
     </div>
   );
 }

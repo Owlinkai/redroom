@@ -18,6 +18,10 @@ const miniPlayerSource = componentSource(
   "function PinnedCameraMiniPlayer",
   "// ─── Detail Panel Components",
 );
+const hoverPreviewSource = componentSource(
+  "function CameraHoverPreview",
+  "// ─── Detail Panel Components",
+);
 const feedPanelSource = componentSource(
   "function CameraFeedPanel",
   "// ─── Helper Components",
@@ -37,12 +41,27 @@ describe("SIGINT camera player presentation integration", () => {
     expect(feedPanelSource).toContain("enabled: !!camera.feedUrl && !isProviderPhotogram && !isExternalReference && !isIframeStream && !isMjpeg");
     expect(feedPanelSource).toContain("if (!isProviderPhotogram || !periodicImageUrl) return;");
     expect(feedPanelSource).toContain("const newSrc = `${periodicImageUrl}${periodicImageUrl.includes('?') ? '&' : '?'}_t=${fetchTick}`;");
-    expect(feedPanelSource).toContain("PROVIDER PHOTOGRAM — REFRESHES EVERY ${REFRESH_INTERVAL / 60000} MIN");
+    expect(feedPanelSource).toContain("const REFRESH_INTERVAL = isMjpeg");
+    expect(feedPanelSource).toContain(": refreshIntervalMs;");
   });
 
-  it("shows the canonical source action and intelligence context in the rendered detail panel", () => {
-    expect(feedPanelSource).toContain("{camera.sourceContext && <DetailRow label=\"INTEL CONTEXT\" value={camera.sourceContext} />}");
+  it("adds a delayed map-hover preview that reuses the safe camera presentation contract without changing marker selection", () => {
+    expect(sigintSource).toContain("const [hoveredCameraPreview, setHoveredCameraPreview]");
+    expect(sigintSource).toContain("cameraHoverTimerRef.current = setTimeout(() => setHoveredCameraPreview({ camera: cam, x, y }), 180);");
+    expect(sigintSource).toContain("m.on(\"click\", () => selectItem(\"camera\", cam));");
+    expect(hoverPreviewSource).toContain("getCameraPresentation(camera)");
+    expect(hoverPreviewSource).toContain("pointer-events-none");
+    expect(hoverPreviewSource).toContain("isProviderPhotogram");
+    expect(hoverPreviewSource).toContain("/api/trpc/sigint.proxyCCTVImage");
+  });
+
+  it("shows canonical source controls and structured operational context in the refined detail panel", () => {
+    expect(feedPanelSource).toContain("Source attribution");
+    expect(feedPanelSource).toContain("Operational context");
+    expect(feedPanelSource).toContain("Open official viewer");
+    expect(feedPanelSource).toContain("Refresh plan");
+    expect(feedPanelSource).toContain("{camera.sourceContext && <div className=\"mt-2 border-t");
     expect(feedPanelSource).toContain("{sourceLink && <a href={sourceLink} target=\"_blank\" rel=\"noopener noreferrer\"");
-    expect(feedPanelSource).toContain("Open feed source");
+    expect(feedPanelSource).toContain("<Pin size={10} /> PIN");
   });
 });
