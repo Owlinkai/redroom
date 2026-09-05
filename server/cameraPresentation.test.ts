@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getCameraPresentation,
+  isMachineReadableCameraSource,
   SKYLINE_DEFAULT_PHOTOGRAM_REFRESH_MS,
   SKYLINE_MIN_PHOTOGRAM_REFRESH_MS,
 } from "../client/src/lib/cameraPresentation";
@@ -54,5 +55,18 @@ describe("camera presentation safety", () => {
 
     expect(presentation.imageFeedUrl).toContain("/snapshot");
     expect(presentation.refreshIntervalMs).toBe(60_000);
+  });
+
+  it("never exposes a JSON or API index as the source action when a live image is available", () => {
+    const imageUrl = "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.jpg";
+    const presentation = getCameraPresentation({
+      sourceRef: "https://api.tfl.gov.uk/Place/Type/JamCam",
+      feedUrl: imageUrl,
+    });
+
+    expect(isMachineReadableCameraSource("https://api.tfl.gov.uk/Place/Type/JamCam")).toBe(true);
+    expect(isMachineReadableCameraSource("https://tie.digitraffic.fi/api/weathercam/v1/stations")).toBe(true);
+    expect(isMachineReadableCameraSource("https://www.livetraffic.com/traffic-cameras")).toBe(false);
+    expect(presentation.sourceLink).toBe(imageUrl);
   });
 });

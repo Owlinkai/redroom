@@ -23,6 +23,20 @@ function isProviderPhotogramUrl(value: string): boolean {
   }
 }
 
+/** Machine-readable source indexes must never be exposed as the player action. */
+export function isMachineReadableCameraSource(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.hostname.startsWith("api.")
+      || url.hostname.startsWith("tie.")
+      || /\.(?:json|xml|js)$/i.test(url.pathname)
+      || /\/(?:api|opendata|FeatureServer|List\/GetData)\b/i.test(url.pathname)
+      || /(?:^|[?&])f=json(?:&|$)/i.test(url.search);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Normalizes camera presentation behavior. Skyline photograms are constrained
  * to provider-issued image URLs and never routed through the CCTV image proxy.
@@ -32,7 +46,10 @@ export function getCameraPresentation(camera: CameraPresentationInput) {
   const periodicImageUrl = isProviderPhotogramUrl(requestedPhotogram) ? requestedPhotogram : "";
   const isProviderPhotogram = Boolean(periodicImageUrl);
   const isExternalReference = Boolean(camera.referenceOnly || camera.feedMode === "reference") && !isProviderPhotogram;
-  const sourceLink = camera.sourceRef || camera.streamUrl || camera.feedUrl || "";
+  const canonicalSource = camera.sourceRef || "";
+  const sourceLink = isMachineReadableCameraSource(canonicalSource)
+    ? camera.streamUrl || camera.feedUrl || ""
+    : canonicalSource || camera.streamUrl || camera.feedUrl || "";
 
   return {
     sourceLink,

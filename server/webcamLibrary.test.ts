@@ -100,10 +100,10 @@ describe("SIGINT webcam library", () => {
       id: "thb-cctv-45-0070-099-002", feed_url: "https://cctv-ss01.thb.gov.tw/T7-099K+600/snapshot", source: "Taiwan Highway Bureau", refresh_interval_ms: 60_000,
     });
     expect(mapFintrafficCamera({ id: "C01503", geometry: { coordinates: [23.99616, 60.05374] }, properties: { name: "Lohja", municipality: "Lohja", presets: [{ id: "C0150301" }] } })).toMatchObject({
-      id: "fintraffic-C01503", source: "Fintraffic", refresh_interval_ms: 60_000,
+      id: "fintraffic-C01503", source: "Fintraffic", refresh_interval_ms: 60_000, external_url: "https://liikennetilanne.fintraffic.fi/pulssi/",
     });
     expect(mapSingaporeTrafficCamera({ camera_id: "1001", image: "https://images.data.gov.sg/api/traffic-images/example.jpg", location: { latitude: 1.3, longitude: 103.8 } })).toMatchObject({
-      id: "lta-sg-1001", source: "LTA Singapore", refresh_interval_ms: 60_000,
+      id: "lta-sg-1001", source: "LTA Singapore", refresh_interval_ms: 60_000, external_url: "https://onemotoring.lta.gov.sg/content/onemotoring/home/driving/traffic_information/traffic-cameras.html",
     });
   });
 
@@ -113,7 +113,7 @@ describe("SIGINT webcam library", () => {
       <image><key>OUTSIDE</key><latitude>53</latitude><longitude>114.1</longitude><url>https://tdcctv.data.one.gov.hk/OUTSIDE.JPG</url></image></image-list>
     `);
     expect(cameras).toHaveLength(1);
-    expect(cameras[0]).toMatchObject({ id: "hk-h429f", source: "Hong Kong Transport Department", refresh_interval_ms: 60_000 });
+    expect(cameras[0]).toMatchObject({ id: "hk-h429f", source: "Hong Kong Transport Department", refresh_interval_ms: 60_000, external_url: "https://www.hkemobility.gov.hk/en/traffic-information/live/cctv" });
   });
 
   it("maps the official WSDOT camera layer with its five-minute image cadence", () => {

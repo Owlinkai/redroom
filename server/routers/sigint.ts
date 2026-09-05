@@ -60,6 +60,61 @@ const DB_CAMERA_CACHE_TTL = 5 * 60 * 1000;
 // Hash cache for camera feed change detection
 const cameraHashCache = new Map<string, { hash: string; lastChanged: number; lastFetched: number }>();
 
+const CAMERA_VIEWER_REFS: Record<string, string> = {
+  'ASFINAG': 'https://www.asfinag.at/verkehr-sicherheit/webcams/',
+  'ODOT TripCheck': 'https://www.tripcheck.com/',
+  'Caltrans QuickMap': 'https://quickmap.dot.ca.gov/',
+  'NZTA Waka Kotahi': 'https://trafficnz.info/',
+  'NYSDOT 511': 'https://511ny.org/',
+  '511_georgia': 'https://511ga.org/',
+  '511_louisiana': 'https://www.511la.org/',
+  'Alberta 511': 'https://511.alberta.ca/',
+  'Caltrans D03': 'https://quickmap.dot.ca.gov/',
+  'Caltrans D04': 'https://quickmap.dot.ca.gov/',
+  'Caltrans D07': 'https://quickmap.dot.ca.gov/',
+  'Caltrans D08': 'https://quickmap.dot.ca.gov/',
+  'Caltrans D11': 'https://quickmap.dot.ca.gov/',
+  'Caltrans D12': 'https://quickmap.dot.ca.gov/',
+  'DGT Spain': 'https://etraffic.dgt.es/etrafficWEB/',
+  'Taiwan Highway Bureau': 'https://168.thb.gov.tw/',
+  'Hong Kong Transport Department': 'https://www.hkemobility.gov.hk/en/traffic-information/live/cctv',
+  'Fintraffic': 'https://liikennetilanne.fintraffic.fi/pulssi/',
+  'Finland Digitraffic': 'https://liikennetilanne.fintraffic.fi/pulssi/',
+  'LTA Singapore': 'https://onemotoring.lta.gov.sg/content/onemotoring/home/driving/traffic_information/traffic-cameras.html',
+  'Singapore LTA': 'https://onemotoring.lta.gov.sg/content/onemotoring/home/driving/traffic_information/traffic-cameras.html',
+  'WSDOT': 'https://wsdot.com/travel/real-time/map/',
+  'Ontario 511': 'https://511on.ca/cctv',
+  'FDOT Florida 511': 'https://fl511.com/cctv',
+  'Québec 511': 'https://www.quebec511.info/en/Diffusion/EtatReseau/Cameras.aspx',
+  'DriveBC': 'https://www.drivebc.ca/cameras',
+  'City of Toronto': 'https://www.toronto.ca/services-payments/streets-parking-transportation/road-restrictions-closures/restrictions-map/?camera=true',
+  'City of Ottawa': 'https://traffic.ottawa.ca/en/traffic-map-data-lists-and-resources/traffic-camera-locations',
+  'NSW Live Traffic': 'https://www.livetraffic.com/traffic-cameras',
+  'YouTube Live': 'https://www.youtube.com/',
+  'Windy Webcam': 'https://www.windy.com/webcams/',
+};
+
+export function isMachineReadableCameraSource(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.hostname.startsWith('api.')
+      || url.hostname.startsWith('tie.')
+      || /\.(?:json|xml|js)$/i.test(url.pathname)
+      || /\/(?:api|opendata|FeatureServer|List\/GetData)\b/i.test(url.pathname)
+      || /(?:^|[?&])f=json(?:&|$)/i.test(url.search);
+  } catch {
+    return false;
+  }
+}
+
+export function resolveCameraSourceReference(source: string, sourceRef: string | null | undefined, feedUrl: string | null | undefined, streamUrl?: string | null): string {
+  const viewer = CAMERA_VIEWER_REFS[source];
+  if (viewer) return viewer;
+  const candidate = sourceRef || '';
+  if (candidate && !isMachineReadableCameraSource(candidate)) return candidate;
+  return streamUrl || feedUrl || '';
+}
+
 async function getAllCCTVCamerasFromDB(): Promise<any[]> {
   const now = Date.now();
   if (dbCameraCache.cameras.length > 0 && (now - dbCameraCache.lastFetch) < DB_CAMERA_CACHE_TTL) {
@@ -80,7 +135,7 @@ async function getAllCCTVCamerasFromDB(): Promise<any[]> {
       country: row.countryCode,
       countryName: row.country,
       source: row.source,
-      sourceRef: row.sourceApi || "",
+      sourceRef: resolveCameraSourceReference(row.source, row.sourceApi, row.feedUrl),
       feedUrl: row.feedUrl,
       videoUrl: "",
       type: row.feedType || "image",
@@ -753,30 +808,6 @@ Be factual, concise, and intelligence-focused. Use current 2024-2025 data.`,
         getLiveCameras().catch(() => [] as LiveCamera[]),
       ]);
 
-      // Source reference URLs for known live camera providers
-      const LIVE_SOURCE_REFS: Record<string, string> = {
-        'TfL JamCam': 'https://api.tfl.gov.uk/Place/Type/JamCam',
-        'ASFINAG': 'https://www.asfinag.at/verkehr-sicherheit/webcams/',
-        'ODOT TripCheck': 'https://www.tripcheck.com/',
-        'Caltrans QuickMap': 'https://quickmap.dot.ca.gov/',
-        'NZTA Waka Kotahi': 'https://trafficnz.info/',
-        'DGT Spain': 'https://www.dgt.es/conoce-el-estado-del-trafico/camaras-de-trafico/',
-        'Taiwan Highway Bureau': 'https://thbapp.thb.gov.tw/opendata/',
-        'Hong Kong Transport Department': 'https://data.gov.hk/en-data/dataset/hk-td-sm_1-traffic-snapshot-images',
-        'Fintraffic': 'https://www.digitraffic.fi/en/road-traffic/',
-        'LTA Singapore': 'https://data.gov.sg/datasets?query=traffic%20images',
-        'WSDOT': 'https://wsdot.com/travel/real-time/map/',
-        'Ontario 511': 'https://511on.ca/cctv',
-        'FDOT Florida 511': 'https://fl511.com/cctv',
-        'Québec 511': 'https://www.quebec511.info/en/Diffusion/EtatReseau/Cameras.aspx',
-        'DriveBC': 'https://www.drivebc.ca/cameras',
-        'City of Toronto': 'https://www.toronto.ca/services-payments/streets-parking-transportation/road-restrictions-closures/restrictions-map/?camera=true',
-        'City of Ottawa': 'https://traffic.ottawa.ca/en/traffic-map-data-lists-and-resources/traffic-camera-locations',
-        'NSW Live Traffic': 'https://www.livetraffic.com/traffic-cameras',
-        'YouTube Live': 'https://www.youtube.com/',
-        'Windy Webcam': 'https://www.windy.com/webcams/',
-      };
-
       // Convert live cameras to same format as DB cameras
       const liveConverted = liveCams.map((lc: LiveCamera) => ({
         id: lc.id,
@@ -787,7 +818,7 @@ Be factual, concise, and intelligence-focused. Use current 2024-2025 data.`,
         country: lc.country.slice(0, 2).toUpperCase(),
         countryName: lc.country,
         source: lc.source,
-        sourceRef: lc.external_url || LIVE_SOURCE_REFS[lc.source] || "",
+        sourceRef: resolveCameraSourceReference(lc.source, lc.external_url, lc.feed_url, lc.stream_url),
         feedUrl: lc.feed_url,
         streamUrl: lc.stream_url || "",
         streamType: lc.stream_type || "",
