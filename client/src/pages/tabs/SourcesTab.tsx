@@ -60,6 +60,8 @@ const COUNTRY_COORDS: Record<string, [number, number]> = {
   "Mexico": [23.63, -102.55], "Argentina": [-38.42, -63.62], "Colombia": [4.57, -74.30],
   "Chile": [-35.68, -71.54], "Venezuela": [6.42, -66.59], "Peru": [-9.19, -75.02],
   "Poland": [51.92, 19.15], "Ukraine": [48.38, 31.17], "Netherlands": [52.13, 5.29],
+  "Armenia": [40.18, 44.51], "Georgia": [41.72, 44.79],
+  "Moldova": [47.01, 28.86], "Azerbaijan": [40.41, 49.87],
   "Belgium": [50.50, 4.47], "Switzerland": [46.82, 8.23], "Sweden": [60.13, 18.64],
   "Norway": [60.47, 8.47], "Denmark": [56.26, 9.50], "Finland": [61.92, 25.75],
   "Greece": [39.07, 21.82], "Portugal": [39.40, -8.22], "Czech Republic": [49.82, 15.47],
@@ -1298,6 +1300,18 @@ function MapResizer() {
   return null;
 }
 
+// Follow the DB-backed region chosen in the main header, even after a tab switch.
+function SourcesRegionView({ region }: { region: string }) {
+  const map = useMap();
+  const { data: regions } = trpc.ref.regions.useQuery();
+  const view = regions?.find(r => r.name === region);
+  useEffect(() => {
+    if (!view) return;
+    map.setView([view.centerLat, view.centerLon], view.defaultZoom ?? 4, { animate: false });
+  }, [map, region, view?.centerLat, view?.centerLon, view?.defaultZoom]);
+  return null;
+}
+
 // ─── Heatmap layer component ──────────────────────────────────────────────────
 function ArticleHeatmapLayer({ groups, visible }: { groups: { coords: [number,number]; totalArticles: number }[]; visible: boolean }) {
   const map = useMap();
@@ -1601,6 +1615,7 @@ function SourcesMap({ region, onSwitchToMonitor }: { region: string; onSwitchToM
             <TileLayer key="sources-light-reference" url={SOURCES_LIGHT_REFERENCE_TILE} maxZoom={18} zIndex={300}/>
           </> : <TileLayer key="sources-street-base" url={SOURCES_STREET_TILE} attribution="Tiles &copy; Esri" maxZoom={18}/>} 
           <MapResizer/>
+          <SourcesRegionView region={region}/>
           <ZoomControl position="bottomright"/>
           <ArticleHeatmapLayer groups={agencyGroups} visible={showHeatmap}/>
           {/* Threat overlay: red pulsing circles for countries with high error rates */}

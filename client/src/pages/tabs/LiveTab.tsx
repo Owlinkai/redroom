@@ -37,6 +37,7 @@ const ESRI_TOPO_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/Wor
 const REGION_VIEW: Record<string, { center: [number, number]; zoom: number }> = {
   'MENA':               { center: [28.0,  42.0],  zoom: 4 },
   'Europe':             { center: [54.0,  15.0],  zoom: 4 },
+  'Eastern Europe':     { center: [45.0,  38.0],  zoom: 4 },
   'East Asia':          { center: [35.0, 115.0],  zoom: 4 },
   'Asia-Pacific':       { center: [-10.0, 130.0], zoom: 3 },
   'South Asia':         { center: [22.0,  78.0],  zoom: 4 },
@@ -86,6 +87,10 @@ const COUNTRY_BOUNDS: Record<string, [[number, number], [number, number]]> = {
   'France':       [[41.3, -5.1], [51.1, 9.6]],
   'Germany':      [[47.3, 5.9],  [55.1, 15.0]],
   'Ukraine':      [[44.4, 22.1], [52.4, 40.2]],
+  'Armenia':      [[38.8, 43.4], [41.3, 46.7]],
+  'Georgia':      [[41.0, 40.0], [43.6, 46.8]],
+  'Moldova':      [[45.5, 26.6], [48.5, 30.2]],
+  'Azerbaijan':   [[38.3, 44.7], [41.9, 50.4]],
   'India':        [[8.1,  68.1], [37.1, 97.4]],
   'Ethiopia':     [[3.4,  33.0], [14.9, 47.9]],
   'Nigeria':      [[4.3,  2.7],  [13.9, 14.7]],
@@ -451,13 +456,13 @@ function CountrySearchBar({ onNavigate, collapsed }: { onNavigate: (country: str
 
   // Known country list from GeoJSON (common names)
   const KNOWN_COUNTRIES = [
-    'Afghanistan','Algeria','Argentina','Australia','Austria','Azerbaijan',
+    'Afghanistan','Algeria','Argentina','Armenia','Australia','Austria','Azerbaijan',
     'Bahrain','Bangladesh','Belarus','Belgium','Bolivia','Bosnia and Herzegovina',
     'Brazil','Bulgaria','Cambodia','Cameroon','Canada','Chile','China','Colombia',
     'Croatia','Cuba','Czech Republic','Denmark','Ecuador','Egypt','Ethiopia',
-    'Finland','France','Germany','Ghana','Greece','Hungary','India','Indonesia',
+    'Finland','France','Georgia','Germany','Ghana','Greece','Hungary','India','Indonesia',
     'Iran','Iraq','Ireland','Israel','Italy','Japan','Jordan','Kazakhstan',
-    'Kenya','Kuwait','Lebanon','Libya','Malaysia','Mexico','Morocco','Myanmar',
+    'Kenya','Kuwait','Lebanon','Libya','Malaysia','Mexico','Moldova','Morocco','Myanmar',
     'Netherlands','New Zealand','Nigeria','North Korea','Norway','Oman','Pakistan',
     'Palestine','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia',
     'Saudi Arabia','Serbia','Somalia','South Africa','South Korea','Spain','Sudan',
@@ -1556,7 +1561,7 @@ export default function LiveTab({ region, onExplore, onVerify, initialCountryFil
           onClick={() => { if (mapCtxMenu) setMapCtxMenu(null); }}
         >
           <MapContainer
-            center={MENA_CENTER} zoom={MENA_ZOOM}
+            center={REGION_VIEW[region]?.center ?? MENA_CENTER} zoom={REGION_VIEW[region]?.zoom ?? MENA_ZOOM}
             style={{ width: '100%', height: '100%', background: 'var(--background)' }}
             zoomControl={false}
             attributionControl={true}
